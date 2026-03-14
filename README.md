@@ -137,7 +137,6 @@ DEFAULT_SCHEDULE_TIMES = [
 - `data/poetry_library/modern_poems.json`（现代诗）
 - `data/poetry_library/foreign_poems.json`（双语外国诗）
 
-当前每个库均为 **120 条**（100+）。
 
 字段格式：
 
@@ -215,5 +214,5 @@ bot/
 ## 版本
 
 - `v1.2.0`：新增双语外国诗类型、现代诗 HTML/内嵌 JSON 提取回退、`run.py` 单实例启动保护
-- `v1.3.0`：本地诗歌库外置化（三库均 100+）、移除不可用线上源、增强 HTML 壳页面识别
+- `v1.3.0`：本地诗歌库外置化、移除不可用线上源、增强 HTML 壳页面识别
 - `v1.3.1`：统一发布版本号为 `1.3.1`，补充运行产物忽略规则（`.bot_run.lock`、`napcat/`）
