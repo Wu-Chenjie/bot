@@ -14,6 +14,7 @@
 - 管理员配置定时推送群聊
 - 定时群聊持久化保存（重启后不丢失）
 - 启动单实例保护（避免重复启动导致重复回复）
+- 外置本地诗歌库（古诗/现代/双语均支持）
 
 ---
 
@@ -128,6 +129,22 @@ DEFAULT_SCHEDULE_TIMES = [
 - 定时群配置保存在：`data/groups.json`
 - 文件由程序自动创建，无需手动新建
 
+### 本地诗歌库（外置）
+
+诗歌库已外置到以下文件，程序启动时会优先加载：
+
+- `data/poetry_library/classic_poems.json`（古诗词）
+- `data/poetry_library/modern_poems.json`（现代诗）
+- `data/poetry_library/foreign_poems.json`（双语外国诗）
+
+当前每个库均为 **120 条**（100+）。
+
+字段格式：
+
+- 古诗词：`title` / `author` / `content` / `style` / `tags`
+- 现代诗：字符串列表（每项为完整文本）
+- 双语：`title` / `author` / `translator` / `english` / `chinese`
+
 ---
 
 ## 常见问题（FAQ）
@@ -153,6 +170,18 @@ pip install ncatbot aiohttp pyyaml
 
 这是上游接口波动导致的正常现象；插件已做多源回退、本地候选兜底，并支持从网页 HTML / 内嵌 JSON 尝试提取诗歌文本，通常会尽量返回可用结果。
 
+### 5）为什么有些在线 API 被移除
+
+已移除当前环境不可用或返回壳页面的接口（如 DNS 失败或仅返回前端 HTML）。
+
+当前线上优先源：
+
+- 古诗词：`v1.jinrishici.com`
+- 现代诗：`v1.hitokoto.cn`（含国际镜像回退）
+- 双语外国诗：`zenquotes.io`
+
+若线上返回 HTML，程序会先识别壳页面并跳过，避免误判为诗歌内容。
+
 ### 4）提示“已检测到机器人实例正在运行”
 
 这是正常保护机制：`run.py` 已启用单实例锁，避免重复启动造成同一命令回复两次。
@@ -174,7 +203,11 @@ bot/
 ├── utils.py
 ├── run.py
 └── data/
-  └── groups.json  # 运行后生成
+  ├── groups.json  # 运行后生成
+  └── poetry_library/
+      ├── classic_poems.json
+      ├── modern_poems.json
+      └── foreign_poems.json
 ```
 
 ---
@@ -182,3 +215,4 @@ bot/
 ## 版本
 
 - `v1.2.0`：新增双语外国诗类型、现代诗 HTML/内嵌 JSON 提取回退、`run.py` 单实例启动保护
+- `v1.3.0`：本地诗歌库外置化（三库均 100+）、移除不可用线上源、增强 HTML 壳页面识别

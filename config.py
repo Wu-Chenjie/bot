@@ -1,7 +1,7 @@
 # 诗歌API配置
 CLASSIC_POETRY_API = "https://v1.jinrishici.com/rensheng.txt"
-MODERN_POETRY_API = "https://api.vvhan.com/api/modernPoetry"
-FOREIGN_BILINGUAL_POETRY_API = "https://api.ixiaowai.cn/ylapi/english/poetry.php"
+MODERN_POETRY_API = "https://v1.hitokoto.cn/?encode=json"
+FOREIGN_BILINGUAL_POETRY_API = "https://zenquotes.io/api/random"
 
 POETRY_API_LIST = [
     CLASSIC_POETRY_API,

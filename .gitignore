@@ -39,10 +39,15 @@ ENV/
 Thumbs.db
 
 # 插件运行时数据 & 日志
-data/
+data/*
 logs/
 *.log
 /cache/
+
+# 允许提交外置诗歌库
+!data/
+!data/poetry_library/
+!data/poetry_library/*.json
 
 # 类型检查 & 测试缓存
 .mypy_cache/

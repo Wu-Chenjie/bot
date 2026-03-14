@@ -13,14 +13,42 @@ import random
 import json
 import re
 from html import unescape
+from pathlib import Path
 from typing import Optional, Dict, List, Tuple
 
 LOG = get_log("PoetryPlugin-API")
 
 MODERN_POETRY_FALLBACK_APIS = [
     MODERN_POETRY_API,
-    "https://api.apiopen.top/singlePoetry",
+    "https://international.v1.hitokoto.cn/?encode=json",
 ]
+
+FOREIGN_POETRY_FALLBACK_APIS = [
+    FOREIGN_BILINGUAL_POETRY_API,
+]
+
+POETRY_LIBRARY_DIR = Path(__file__).resolve().parent / "data" / "poetry_library"
+CLASSIC_LIBRARY_FILE = POETRY_LIBRARY_DIR / "classic_poems.json"
+MODERN_LIBRARY_FILE = POETRY_LIBRARY_DIR / "modern_poems.json"
+FOREIGN_LIBRARY_FILE = POETRY_LIBRARY_DIR / "foreign_poems.json"
+
+
+def _load_library_file(path: Path, expected_item_type: type, fallback: List) -> List:
+    try:
+        if not path.exists():
+            return fallback
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, list):
+            LOG.warning(f"诗歌库文件格式错误（非列表）: {path}")
+            return fallback
+        cleaned = [item for item in raw if isinstance(item, expected_item_type)]
+        if not cleaned:
+            LOG.warning(f"诗歌库文件为空或类型不匹配: {path}")
+            return fallback
+        return cleaned
+    except Exception as e:
+        LOG.error(f"加载诗歌库失败 {path}: {e}")
+        return fallback
 
 class PoetryAPI:
     """诗歌API请求类"""
@@ -29,6 +57,23 @@ class PoetryAPI:
         "《远和近》\n顾城\n你，一会看我，一会看云。\n我觉得，你看我时很远，你看云时很近。",
         "《断章》\n卞之琳\n你站在桥上看风景，\n看风景的人在楼上看你。\n明月装饰了你的窗子，\n你装饰了别人的梦。",
         "《一代人》\n顾城\n黑夜给了我黑色的眼睛，\n我却用它寻找光明。",
+    ]
+
+    LOCAL_FOREIGN_POEMS = [
+        {
+            "title": "Stopping by Woods on a Snowy Evening",
+            "author": "Robert Frost",
+            "translator": "未知",
+            "english": "Whose woods these are I think I know.\nHis house is in the village though.",
+            "chinese": "我想我认得这片树林。\n树林主人的房子在村中。",
+        },
+        {
+            "title": "Hope is the thing with feathers",
+            "author": "Emily Dickinson",
+            "translator": "未知",
+            "english": "Hope is the thing with feathers\nThat perches in the soul,",
+            "chinese": "希望是有羽毛的东西，\n它栖息在灵魂之中。",
+        },
     ]
 
     LOCAL_POEM_LIBRARY = [
@@ -109,6 +154,31 @@ class PoetryAPI:
         "边塞": ["边", "塞", "胡", "关", "戎", "战", "军", "烽火", "玉门"],
         "爱情": ["情", "爱", "相思", "红豆", "佳人", "伊人", "君", "妾"],
     }
+
+    @staticmethod
+    def _load_external_libraries() -> None:
+        PoetryAPI.LOCAL_POEM_LIBRARY = _load_library_file(
+            CLASSIC_LIBRARY_FILE,
+            dict,
+            PoetryAPI.LOCAL_POEM_LIBRARY,
+        )
+        PoetryAPI.LOCAL_MODERN_POEMS = _load_library_file(
+            MODERN_LIBRARY_FILE,
+            str,
+            PoetryAPI.LOCAL_MODERN_POEMS,
+        )
+        PoetryAPI.LOCAL_FOREIGN_POEMS = _load_library_file(
+            FOREIGN_LIBRARY_FILE,
+            dict,
+            PoetryAPI.LOCAL_FOREIGN_POEMS,
+        )
+
+        LOG.info(
+            "本地诗歌库已加载: classic=%d, modern=%d, foreign=%d",
+            len(PoetryAPI.LOCAL_POEM_LIBRARY),
+            len(PoetryAPI.LOCAL_MODERN_POEMS),
+            len(PoetryAPI.LOCAL_FOREIGN_POEMS),
+        )
     
     @staticmethod
     async def get_random_poetry() -> Optional[str]:
@@ -126,23 +196,32 @@ class PoetryAPI:
             api_url = candidate_urls[attempt % len(candidate_urls)]
             try:
                 poetry_text = await PoetryAPI._request_api(api_url)
-                if poetry_text and PoetryAPI._is_sufficient_poetry(poetry_text):
+                if poetry_text:
                     return poetry_text
                 if poetry_text:
                     fallback_text = fallback_text or poetry_text
                     LOG.info(f"返回内容过短，重试其他API: {api_url}")
             except Exception as e:
                 LOG.warning(f"API请求重试 {api_url}: {e}")
-        return fallback_text
+        if fallback_text:
+            return fallback_text
+
+        local_candidates = [
+            PoetryAPI._get_local_classic_poetry(),
+            format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern"),
+            PoetryAPI._get_local_foreign_poetry(),
+        ]
+        available = [item for item in local_candidates if item]
+        return random.choice(available) if available else None
     
     @staticmethod
     async def get_poetry_by_type(poetry_type: str) -> Optional[str]:
         """按类型获取诗歌"""
         if poetry_type == "classic":
             poetry_text = await PoetryAPI._request_api(CLASSIC_POETRY_API)
-            if poetry_text and PoetryAPI._is_sufficient_poetry(poetry_text):
+            if poetry_text:
                 return poetry_text
-            return None
+            return PoetryAPI._get_local_classic_poetry()
         elif poetry_type == "modern":
             for api_url in MODERN_POETRY_FALLBACK_APIS:
                 poetry_text = await PoetryAPI._request_api(api_url)
@@ -150,12 +229,38 @@ class PoetryAPI:
                     return poetry_text
             return format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern")
         elif poetry_type == "foreign":
-            poetry_text = await PoetryAPI._request_api(FOREIGN_BILINGUAL_POETRY_API)
-            if poetry_text and PoetryAPI._is_sufficient_poetry(poetry_text):
-                return poetry_text
-            return None
+            for api_url in FOREIGN_POETRY_FALLBACK_APIS:
+                poetry_text = await PoetryAPI._request_api(api_url)
+                if poetry_text:
+                    return poetry_text
+            return PoetryAPI._get_local_foreign_poetry()
         else:
             return None
+
+    @staticmethod
+    def _get_local_classic_poetry() -> Optional[str]:
+        if not PoetryAPI.LOCAL_POEM_LIBRARY:
+            return None
+
+        selected = random.choice(PoetryAPI.LOCAL_POEM_LIBRARY)
+        title = str(selected.get("title", "未知标题")).strip() or "未知标题"
+        author = str(selected.get("author", "未知作者")).strip() or "未知作者"
+        poem_content = str(selected.get("content", "")).strip()
+        return format_poetry(f"{title}\n{author}\n{poem_content}", "classic")
+
+    @staticmethod
+    def _get_local_foreign_poetry() -> Optional[str]:
+        if not PoetryAPI.LOCAL_FOREIGN_POEMS:
+            return None
+
+        selected = random.choice(PoetryAPI.LOCAL_FOREIGN_POEMS)
+        title = str(selected.get("title", "未知标题")).strip() or "未知标题"
+        author = str(selected.get("author", "未知作者")).strip() or "未知作者"
+        translator = str(selected.get("translator", "未知")).strip() or "未知"
+        english = str(selected.get("english", "（无）")).strip() or "（无）"
+        chinese = str(selected.get("chinese", "（无）")).strip() or "（无）"
+        block = f"{title}\n作者：{author}\n译者：{translator}\n\n英文：\n{english}\n\n中文：\n{chinese}"
+        return format_poetry(block, "foreign")
 
     @staticmethod
     async def get_filtered_poetry(style: str = "不限", content: str = "不限", poet: str = "不限") -> Optional[str]:
@@ -333,18 +438,46 @@ class PoetryAPI:
 
         lowered = stripped_text.lower()
         if lowered.startswith("<") or "<html" in lowered or "<!doctype" in lowered:
+            if PoetryAPI._is_html_shell_page(stripped_text):
+                LOG.warning(f"检测到HTML壳页面，跳过该接口: {api_url}")
+                return None
             return PoetryAPI._extract_poetry_from_html(stripped_text, api_url)
 
         if len(stripped_text) >= 500:
             return None
 
-        if "modernPoetry" in api_url:
+        if "hitokoto" in api_url:
             poetry_type = "modern"
-        elif "english/poetry.php" in api_url:
+        elif "zenquotes.io" in api_url:
             poetry_type = "foreign"
         else:
             poetry_type = "classic"
         return format_poetry(stripped_text, poetry_type)
+
+    @staticmethod
+    def _is_html_shell_page(html_text: str) -> bool:
+        lowered = html_text.lower()
+        shell_markers = [
+            '<div id="root"',
+            "<div id=root",
+            "type=\"module\"",
+            "type=module",
+            "modulepreload",
+            "crossorigin",
+            "<script",
+            "<link rel=\"stylesheet\"",
+            "<link rel=stylesheet",
+        ]
+        poem_markers = [
+            "hitokoto",
+            "poetry",
+            "content",
+            "sentence",
+            "诗",
+        ]
+        has_shell = sum(marker in lowered for marker in shell_markers) >= 3
+        has_poem_hint = any(marker in lowered for marker in poem_markers)
+        return has_shell and not has_poem_hint
 
     @staticmethod
     def _extract_poetry_from_html(html_text: str, api_url: str) -> Optional[str]:
@@ -513,9 +646,9 @@ class PoetryAPI:
 
     @staticmethod
     def _infer_poetry_type_from_url(api_url: str) -> str:
-        if "modernPoetry" in api_url or "singlePoetry" in api_url:
+        if "hitokoto" in api_url:
             return "modern"
-        if "english/poetry.php" in api_url:
+        if "zenquotes.io" in api_url:
             return "foreign"
         return "classic"
 
@@ -550,26 +683,29 @@ class PoetryAPI:
     def _parse_json_poetry(data: Dict, api_url: str) -> Optional[str]:
         """解析JSON格式诗歌"""
         try:
+            if "zenquotes.io" in api_url and isinstance(data, list) and data:
+                quote = data[0] if isinstance(data[0], dict) else {}
+                english = str(quote.get("q", "")).strip()
+                author = str(quote.get("a", "未知作者")).strip() or "未知作者"
+                if english:
+                    block = f"Random English Verse\n作者：{author}\n译者：未知\n\n英文：\n{english}\n\n中文：\n（暂无在线中文译文）"
+                    return format_poetry(block, "foreign")
+
+            if not isinstance(data, dict):
+                return None
+
             if isinstance(data.get("code"), int) and data.get("code") not in {0, 200}:
                 LOG.warning(f"API返回错误信息: {data.get('message')}")
                 return None
 
-            if "api.vvhan.com/api/modernPoetry" in api_url:
-                modern_text = PoetryAPI._extract_modern_poetry_text(data)
-                if modern_text:
-                    return format_poetry(modern_text, "modern")
-
-            if "api.apiopen.top/singlePoetry" in api_url:
-                result = data.get("result")
-                if isinstance(result, str) and result.strip():
-                    return format_poetry(result.strip(), "modern")
-
-            if "english/poetry.php" in api_url:
-                bilingual = PoetryAPI._extract_foreign_bilingual_payload(data)
-                if bilingual:
-                    title, author, translator, english, chinese = bilingual
-                    block = f"{title}\n作者：{author}\n译者：{translator}\n\n英文：\n{english}\n\n中文：\n{chinese}"
-                    return format_poetry(block, "foreign")
+            if "hitokoto" in api_url:
+                hitokoto = str(data.get("hitokoto", "")).strip()
+                source = str(data.get("from", "未知来源")).strip() or "未知来源"
+                author = str(data.get("from_who", "")).strip()
+                if hitokoto:
+                    if author:
+                        return format_poetry(f"{hitokoto}\n—— {author}《{source}》", "modern")
+                    return format_poetry(f"{hitokoto}\n—— 《{source}》", "modern")
 
             # 尝试常见现代诗结构
             extracted_content = PoetryAPI._extract_text_from_unknown_json(data)
@@ -650,3 +786,6 @@ class PoetryAPI:
             return None
 
         return title, author, translator, english or "（无）", chinese or "（无）"
+
+
+PoetryAPI._load_external_libraries()
