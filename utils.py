@@ -9,6 +9,8 @@ def format_poetry(text: str, poetry_type: str) -> str:
         return f"【每日诗词】\n{text.strip()}"
     elif poetry_type == "modern":
         return f"【每日诗歌】\n{text.strip()}"
+    elif poetry_type == "foreign":
+        return f"【双语诗歌】\n{text.strip()}"
     else:
         return text.strip()
 

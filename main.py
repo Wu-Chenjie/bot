@@ -41,8 +41,8 @@ class PoetryPlugin(NcatBotPlugin):
             return
         await event.reply(MessageChain([Text(poetry_text)]))
     
-    @command_registry.command("poetry_type", aliases=COMMAND_ALIASES["poetry_type"], description="指定类型获取诗歌（古诗词/现代诗）")
-    @param(name="type", default="古诗词", help="诗歌类型：古诗词/现代诗")
+    @command_registry.command("poetry_type", aliases=COMMAND_ALIASES["poetry_type"], description="指定类型获取诗歌（古诗词/现代诗/双语外国诗）")
+    @param(name="type", default="古诗词", help="诗歌类型：古诗词/现代诗/双语外国诗")
     async def poetry_type_cmd(self, event: BaseMessageEvent, type: str = "古诗词"):
         """指定类型获取诗歌"""
         type_mapping = {
@@ -52,10 +52,15 @@ class PoetryPlugin(NcatBotPlugin):
             "现代诗": "modern",
             "现代": "modern",
             "modern": "modern",
+            "双语外国诗": "foreign",
+            "双语": "foreign",
+            "中英": "foreign",
+            "外国诗": "foreign",
+            "foreign": "foreign",
         }
         normalized_type = type_mapping.get((type or "").strip())
         if not normalized_type:
-            await event.reply(MessageChain([Text("类型错误！支持：古诗词 / 现代诗")]))
+            await event.reply(MessageChain([Text("类型错误！支持：古诗词 / 现代诗 / 双语外国诗")]))
             return
         
         poetry_text = await PoetryAPI.get_poetry_by_type(normalized_type)

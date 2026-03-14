@@ -1,11 +1,12 @@
 # 诗歌API配置
+CLASSIC_POETRY_API = "https://v1.jinrishici.com/rensheng.txt"
+MODERN_POETRY_API = "https://api.vvhan.com/api/modernPoetry"
+FOREIGN_BILINGUAL_POETRY_API = "https://api.ixiaowai.cn/ylapi/english/poetry.php"
+
 POETRY_API_LIST = [
-    # 古诗词大全（文本格式）
-    "https://v1.jinrishici.com/rensheng.txt",
-    # 随机诗词（JSON格式）
-    "https://api.apiopen.top/getPoetry?page=1&count=1",
-    # 现代诗（JSON格式）
-    "https://api.apiopen.top/singlePoetry"
+    CLASSIC_POETRY_API,
+    MODERN_POETRY_API,
+    FOREIGN_BILINGUAL_POETRY_API,
 ]
 
 # 定时任务配置
