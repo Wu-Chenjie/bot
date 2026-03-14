@@ -1,0 +1,49 @@
+# Python 编译/缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Python 打包/开发产物
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+temp/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+ENV/
+.venv/
+
+# IDE 配置文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 插件运行时数据 & 日志
+data/
+logs/
+*.log
+/cache/
+
+# 类型检查 & 测试缓存
+.mypy_cache/
+.pytest_cache/
