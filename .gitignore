@@ -43,6 +43,8 @@ data/*
 logs/
 *.log
 /cache/
+.bot_run.lock
+napcat/
 
 # 允许提交外置诗歌库
 !data/
