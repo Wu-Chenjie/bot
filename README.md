@@ -1,88 +1,160 @@
-# 📜 PoetryPlugin - 每日诗词插件
+# 📜 PoetryPlugin（每日诗词插件）
 
-基于 `ncatbot` 框架开发的诗词插件，支持群聊定时推送、随机获取古诗词/现代诗等功能。为您的群聊增添一份文艺气息。
+一个给 QQ 群用的诗词插件：支持手动获取诗词、按类型获取、每天定时自动推送。
 
-## ✨ 功能特点
+---
 
-- **随机诗词**：随时获取一首随机诗歌，支持古诗词和现代诗。
-- **分类获取**：支持指定获取「古诗词」或「现代诗」。
-- **定时推送**：支持管理员配置群聊定时任务，每日准点发送（默认早8点/晚8点）。
-- **持久化存储**：定时任务配置自动保存，重启不丢失。
-- **自动重试**：内置多源 API 支持与自动重试机制，提高可用性。
+## 这是什么
 
-## 🛠️ 安装与部署
+本插件基于 `ncatbot`，核心能力：
 
-### 1. 环境要求
+- 随机获取诗词（古诗词/现代诗）
+- 指定类型获取（classic / modern）
+- 管理员配置定时推送群聊
+- 定时群聊持久化保存（重启后不丢失）
+
+---
+
+## 5 分钟快速开始（推荐按顺序）
+
+### 1）准备环境
+
 - Python 3.8+
-- [ncatbot](https://github.com/li-2004/ncatbot) 框架
-- `aiohttp` 库
+- 已可运行的 `ncatbot` 环境
 
-### 2. 安装依赖
-在项目根目录下运行：
+安装依赖：
+
 ```bash
-pip install ncatbot aiohttp
+pip install ncatbot aiohttp pyyaml
 ```
 
-### 3. 此插件作为一个包被加载
-确保本目录（`bot` 文件夹）放置在您的 `ncatbot` 机器人项目的插件目录下，或者在启动脚本中正确引用。
+### 2）确认目录名
 
-例如在您的机器人启动脚本中：
+当前插件目录名应为：`bot`
+
+因为代码中默认按 `bot` 包导入（`from bot.main import PoetryPlugin`）。
+
+### 3）启动机器人
+
+在本目录执行：
+
+```bash
+python run.py
+```
+
+看到启动日志后，到群里发送：
+
+```text
+/poetry
+```
+
+若返回诗词，说明部署成功。
+
+---
+
+## 常用命令
+
+> 下面命令都支持中文别名，表中“主命令”与“别名”任选其一。
+
+### 普通用户
+
+| 功能 | 主命令 | 别名 | 示例 |
+| :--- | :--- | :--- | :--- |
+| 获取随机诗词 | `/poetry` | `诗词` / `诗歌` | `/poetry` |
+| 按类型获取 | `/poetry_type <type>` | `诗词类型` | `/poetry_type classic` |
+
+`type` 可选：
+
+- `classic`：古诗词
+- `modern`：现代诗
+
+### 管理员
+
+| 功能 | 主命令 | 别名 | 示例 |
+| :--- | :--- | :--- | :--- |
+| 添加定时群 | `/poetry_schedule add [group_id]` | `诗词定时` | `/poetry_schedule add` |
+| 移除定时群 | `/poetry_schedule remove [group_id]` | `诗词定时` | `/poetry_schedule remove` |
+| 查看插件状态 | `/poetry_status` | `诗词状态` | `/poetry_status` |
+
+说明：
+
+- `group_id` 不填时，默认使用“当前群号”
+- 只有管理员命令可以改定时配置
+
+---
+
+## 配置项说明
+
+### `config.py`
+
+1. `DEFAULT_SCHEDULE_TIMES`：定时推送时间
+
 ```python
-from ncatbot.core import Bot
-from bot import PoetryPlugin  # 假设文件夹名为 bot
-
-bot = Bot(config_path="config.yaml")
-bot.register_plugin(PoetryPlugin)
-bot.run()
+DEFAULT_SCHEDULE_TIMES = [
+  {"hour": 8, "minute": 0},
+  {"hour": 20, "minute": 0}
+]
 ```
 
-## 📖 命令使用指南
+2. `POETRY_API_LIST`：诗词 API 列表（随机 + 重试）
+3. `COMMAND_ALIASES`：命令别名映射
 
-> **提示**：所有命令均支持中文别名。
+### `config.yaml`
 
-### 👥 普通用户命令
+机器人连接配置（由 `run.py` 读取），按你本机/服务器实际地址填写。
 
-| 命令 | 别名 | 参数 | 说明 | 示例 |
-| :--- | :--- | :--- | :--- | :--- |
-| `/poetry` | `诗词`, `诗歌` | 无 | 随机获取一首诗词 | `/poetry` |
-| `/poetry_type` | `诗词类型` | `type` | 指定类型获取<br>`classic`: 古诗词 (默认)<br>`modern`: 现代诗 | `/poetry_type modern` |
+---
 
-### 👮 管理员命令 (仅限配置的管理员)
+## 数据存储
 
-| 命令 | 别名 | 参数 | 说明 | 示例 |
-| :--- | :--- | :--- | :--- | :--- |
-| `/poetry_schedule` | `诗词定时` | `action`: `add`/`remove`<br>`group_id`: (可选) | **开启/关闭**当前群聊的定时推送 | `/poetry_schedule add`<br>`/poetry_schedule remove` |
-| `/poetry_status` | `诗词状态` | 无 | 查看插件运行状态、定时任务数及API状态 | `/poetry_status` |
+- 定时群配置保存在：`data/groups.json`
+- 文件由程序自动创建，无需手动新建
 
-## ⚙️ 配置说明
+---
 
-核心配置位于 `config.py` 文件中，您可以根据需要修改：
+## 常见问题（FAQ）
 
-- **`DEFAULT_SCHEDULE_TIMES`**: 设置定时推送的时间列表。
-  ```python
-  # 默认每天早8点和晚8点推送
-  DEFAULT_SCHEDULE_TIMES = [
-      {"hour": 8, "minute": 0},
-      {"hour": 20, "minute": 0}
-  ]
-  ```
-- **`POETRY_API_LIST`**: 诗词 API 源列表。
-- **`COMMAND_ALIASES`**: 自定义命令的中文别名。
+### 1）报错：`No module named 'bot.main'`
 
-## 📂 文件结构
+通常是目录名或运行路径问题：
 
+- 确认目录名是 `bot`
+- 从插件目录执行 `python run.py`
+
+### 2）报错：`No module named 'ncatbot'`
+
+依赖未安装到当前 Python 环境：
+
+```bash
+pip install ncatbot aiohttp pyyaml
 ```
+
+如果你使用虚拟环境，请用该环境的 Python 执行安装和启动。
+
+### 3）现代诗偶尔为空
+
+这是上游接口波动导致的正常现象；插件已做重试与内容过滤。
+
+---
+
+## 项目结构
+
+```text
 bot/
-├── __init__.py          # 插件导出
-├── main.py              # 插件核心逻辑与命令处理
-├── config.py            # 配置文件
-├── schedule_manager.py  # 定时任务管理器
-├── poetry_api.py        # API 请求封装
-├── utils.py             # 工具函数
-└── data/                # (运行时生成) 数据存储目录
-    └── groups.json      # 定时发送群聊列表
+├── __init__.py
+├── main.py
+├── config.py
+├── config.yaml
+├── poetry_api.py
+├── schedule_manager.py
+├── utils.py
+├── run.py
+└── data/
+  └── groups.json  # 运行后生成
 ```
 
-## 📝 更新日志
+---
 
-- **v1.0.0**: 初始版本发布，支持基本的诗词获取与定时任务。
+## 版本
+
+- `v1.0.0`：基础命令 + 定时推送
