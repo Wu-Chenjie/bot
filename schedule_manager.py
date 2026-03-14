@@ -15,7 +15,11 @@ class ScheduleManager:
     
     def __init__(self):
         self.schedule_times: List[time] = [parse_schedule_time(t) for t in DEFAULT_SCHEDULE_TIMES]
-        self.schedule_groups: Set[int] = set(DEFAULT_SCHEDULE_GROUPS)
+        self.schedule_groups: Set[int] = {
+            int(group_id)
+            for group_id in DEFAULT_SCHEDULE_GROUPS
+            if isinstance(group_id, int) and validate_group_id(group_id)
+        }
         self.bot = None  # 由插件注入
         
         # 数据持久化路径
@@ -33,7 +37,15 @@ class ScheduleManager:
                 with open(self.data_file, "r", encoding="utf-8") as f:
                     groups = json.load(f)
                     if isinstance(groups, list):
-                        self.schedule_groups.update(groups)
+                        valid_groups = set()
+                        for group_id in groups:
+                            try:
+                                normalized_group_id = int(group_id)
+                            except (TypeError, ValueError):
+                                continue
+                            if validate_group_id(normalized_group_id):
+                                valid_groups.add(normalized_group_id)
+                        self.schedule_groups.update(valid_groups)
             except Exception as e:
                 LOG.error(f"加载群聊配置失败: {e}")
 
@@ -69,22 +81,23 @@ class ScheduleManager:
         """启动定时任务"""
         async def schedule_job():
             LOG.info("定时任务监视器已启动")
+            last_trigger_minute = None
             while True:
                 try:
                     now = datetime.now()
                     current_time = (now.hour, now.minute)
+                    current_minute_key = (now.year, now.month, now.day, now.hour, now.minute)
                     
                     # 检查是否到达定时时间
-                    for target_time in self.schedule_times:
-                        if (target_time.hour, target_time.minute) == current_time:
-                            LOG.info(f"触发定时任务时间点: {target_time}")
-                            await self._send_schedule_poetry()
-                            break  # 避免同一分钟重复触发
+                    if last_trigger_minute != current_minute_key:
+                        for target_time in self.schedule_times:
+                            if (target_time.hour, target_time.minute) == current_time:
+                                LOG.info(f"触发定时任务时间点: {target_time}")
+                                await self._send_schedule_poetry()
+                                last_trigger_minute = current_minute_key
+                                break
 
-                    # 对齐到下一分钟，避免频繁轮询
-                    now = datetime.now()
-                    sleep_seconds = 60 - now.second
-                    await asyncio.sleep(sleep_seconds + 1)
+                    await asyncio.sleep(max(1, SCHEDULE_CHECK_INTERVAL))
                 except Exception as e:
                     LOG.error(f"定时任务循环发生错误: {e}")
                     await asyncio.sleep(30)  # 错误后等待一段时间重试
@@ -105,10 +118,10 @@ class ScheduleManager:
         # 发送到所有定时群聊
         for group_id in self.schedule_groups:
             try:
-                from ncatbot.core import MessageChain, Plain
+                from ncatbot.core import MessageChain, Text
                 await self.bot.send_group_message(
                     group_id=group_id,
-                    message_chain=MessageChain([Plain(poetry_text)])
+                    message_chain=MessageChain([Text(poetry_text)])
                 )
                 LOG.info(f"定时发送诗歌到群聊 {group_id} 成功")
                 await asyncio.sleep(SCHEDULE_SEND_DELAY)

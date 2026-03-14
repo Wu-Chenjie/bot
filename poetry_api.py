@@ -13,8 +13,16 @@ class PoetryAPI:
     @staticmethod
     async def get_random_poetry() -> Optional[str]:
         """随机获取一首诗歌（自动重试）"""
-        for _ in range(RETRY_TIMES):
-            api_url = random.choice(POETRY_API_LIST)
+        if not POETRY_API_LIST:
+            LOG.warning("未配置可用诗歌API")
+            return None
+
+        candidate_urls = POETRY_API_LIST[:]
+        random.shuffle(candidate_urls)
+        max_attempts = max(RETRY_TIMES, len(candidate_urls))
+
+        for attempt in range(max_attempts):
+            api_url = candidate_urls[attempt % len(candidate_urls)]
             try:
                 poetry_text = await PoetryAPI._request_api(api_url)
                 if poetry_text:
@@ -62,12 +70,27 @@ class PoetryAPI:
                         except Exception:
                             # 某些API虽然不是.txt结尾，但可能返回纯文本，尝试作为文本解析
                             text = await response.text()
-                            if len(text) < 500: # 简单的长度检查防止错误的HTML页面
-                                return format_poetry(text, "classic")
-                            return None
+                            return PoetryAPI._parse_plain_text_poetry(text, api_url)
         except Exception as e:
             LOG.error(f"API请求异常 {api_url}: {e}")
             return None
+
+    @staticmethod
+    def _parse_plain_text_poetry(text: str, api_url: str) -> Optional[str]:
+        """解析纯文本返回，过滤HTML等非诗词内容"""
+        stripped_text = (text or "").strip()
+        if not stripped_text:
+            return None
+
+        lowered = stripped_text.lower()
+        if lowered.startswith("<") or "<html" in lowered or "<!doctype" in lowered:
+            return None
+
+        if len(stripped_text) >= 500:
+            return None
+
+        poetry_type = "modern" if "singlePoetry" in api_url else "classic"
+        return format_poetry(stripped_text, poetry_type)
     
     @staticmethod
     def _parse_json_poetry(data: Dict, api_url: str) -> Optional[str]:
