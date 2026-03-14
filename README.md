@@ -63,12 +63,15 @@ python run.py
 
 | 功能 | 主命令 | 别名 | 示例 |
 | :--- | :--- | :--- | :--- |
+| 帮助菜单 | `/help` | `帮助` / `菜单` / `指令` | `/help` |
 | 获取随机诗词 | `/poetry` | `诗词` / `诗歌` | `/poetry` |
 | 按类型获取 | `/poetry_type <type>` | `诗词类型` | `/poetry_type 古诗词` |
 | 按条件筛选 | `/poetry_filter <style> <content> <poet>` | `诗词筛选` / `诗歌筛选` / `诗词定制` | `/poetry_filter 婉约派 爱情 李清照` |
+| 关键词搜索 | `/poetry_search <keyword> [type]` | `诗词搜索` / `诗歌搜索` / `搜诗` | `/poetry_search 月 现代诗` |
 
 `type` 可选：
 
+- `不限`（兼容 `all`，默认）
 - `古诗词`（兼容 `classic`）
 - `现代诗`（兼容 `modern`）
 - `双语外国诗`（兼容 `foreign`）
@@ -85,7 +88,16 @@ python run.py
 /poetry_filter 婉约派 爱情 李清照
 /poetry_filter 豪放派 边塞 辛弃疾
 /poetry_filter 不限 思乡 不限
+/poetry_search 月 古诗词
+/poetry_search love 双语外国诗
 ```
+
+搜索规则：
+
+- 先通过诗歌 API 联网检索
+- API 未命中时，自动尝试搜索引擎结果页兜底提取
+- 若联网仍未命中，最后回退到本地诗歌库检索
+- 为保证结果正确性，联网结果需与关键词相关，否则返回“未检索到匹配诗歌”
 
 ### 管理员
 
@@ -138,11 +150,84 @@ DEFAULT_SCHEDULE_TIMES = [
 - `data/poetry_library/foreign_poems.json`（双语外国诗）
 
 
+> 注：若你已自行更新数据库，条目数量以本地文件实际内容为准。
+
 字段格式：
 
 - 古诗词：`title` / `author` / `content` / `style` / `tags`
 - 现代诗：字符串列表（每项为完整文本）
 - 双语：`title` / `author` / `translator` / `english` / `chinese`
+
+### 本地数据库样例（可直接参考）
+
+`classic_poems.json`（对象数组）：
+
+```json
+[
+  {
+    "title": "静夜思",
+    "author": "李白",
+    "content": "床前明月光，疑是地上霜。举头望明月，低头思故乡。",
+    "style": "古体诗",
+    "tags": ["思乡"]
+  }
+]
+```
+
+`modern_poems.json`（两种格式都支持，推荐对象格式）：
+
+```json
+[
+  "《回答》\n作者：北岛\n卑鄙是卑鄙者的通行证，高尚是高尚者的墓志铭。",
+  {
+    "title": "一代人",
+    "author": "顾城",
+    "content": "黑夜给了我黑色的眼睛，我却用它寻找光明。"
+  }
+]
+```
+
+`foreign_poems.json`（对象数组）：
+
+```json
+[
+  {
+    "title": "If",
+    "author": "Rudyard Kipling",
+    "translator": "译者名",
+    "english": "If you can keep your head when all about you...",
+    "chinese": "如果在众人六神无主时，你能镇定自若..."
+  }
+]
+```
+
+建议：
+
+- JSON 顶层使用数组
+- 文本统一 UTF-8 编码
+- 同一首诗避免重复入库（减少搜索重复结果）
+- 现代诗推荐使用对象格式（便于搜索标题/作者）
+
+---
+
+## 快速样例
+
+群聊里可直接发送：
+
+```text
+/help
+/poetry
+/poetry_type 现代诗
+/poetry_search 海子 现代诗
+/poetry_search moon 双语外国诗
+/poetry_filter 不限 思乡 不限
+```
+
+预期行为：
+
+- 优先检索本地库
+- 本地未命中时自动联网回退
+- 联网结果相关性不足时返回“未检索到匹配诗歌”
 
 ---
 

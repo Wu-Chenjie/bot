@@ -1,1 +1,877 @@
-
+[
+  {
+    "title": "A Small Star #94",
+    "author": "W.B. Yeats",
+    "translator": "社区译本",
+    "english": "At dawn, windows remember dreams. The road is quiet after rain.",
+    "chinese": "黎明时，窗子记得梦。 雨后的小路安静下来。"
+  },
+  {
+    "title": "The Lake Isle of Innisfree",
+    "author": "W.B. Yeats",
+    "translator": "傅浩",
+    "english": "I will arise and go now, and go to Innisfree, And a small cabin build there, of clay and wattles made.",
+    "chinese": "我现在就动身，去茵纳斯弗利岛，在那里用泥土和枝条搭一座小房。"
+  },
+  {
+    "title": "When You Are Old",
+    "author": "W.B. Yeats",
+    "translator": "袁可嘉",
+    "english": "When you are old and grey and full of sleep, And nodding by the fire, take down this book.",
+    "chinese": "当你老了，头发花白，睡意沉沉，倦坐在炉边，取下这本书来。"
+  },
+  {
+    "title": "The Second Coming",
+    "author": "W.B. Yeats",
+    "translator": "裘小龙",
+    "english": "Turning and turning in the widening gyre The falcon cannot hear the falconer;",
+    "chinese": "在不断扩大的旋涡里，猎鹰再也听不见驯鹰人的呼唤。"
+  },
+  {
+    "title": "Sailing to Byzantium",
+    "author": "W.B. Yeats",
+    "translator": "傅浩",
+    "english": "That is no country for old men. The young In one another's arms, birds in the trees",
+    "chinese": "那不是老年人的国度。青年人在互相拥抱；林中的鸟雀"
+  },
+  {
+    "title": "Ode to the West Wind",
+    "author": "Percy Bysshe Shelley",
+    "translator": "江枫",
+    "english": "O Wild West Wind, thou breath of Autumn's being, Thou, from whose unseen presence the leaves dead",
+    "chinese": "哦，狂野的西风，秋之实体的气息！由于你无形无影的出现，万木萧疏"
+  },
+  {
+    "title": "To a Skylark",
+    "author": "Percy Bysshe Shelley",
+    "translator": "江枫",
+    "english": "Hail to thee, blithe Spirit! Bird thou never wert, That from Heaven, or near it, Pourest thy full heart",
+    "chinese": "你好啊，欢乐的精灵！你似乎从不是飞禽，从天堂或天堂的邻近，以酣畅淋漓的乐音"
+  },
+  {
+    "title": "Love's Philosophy",
+    "author": "Percy Bysshe Shelley",
+    "translator": "江枫",
+    "english": "The fountains mingle with the river, And the rivers with the ocean, The winds of heaven mix forever",
+    "chinese": "泉水汇入江河，江河注入海洋，天上的风永远混合着"
+  },
+  {
+    "title": "Mutability",
+    "author": "Percy Bysshe Shelley",
+    "translator": "江枫",
+    "english": "We are as clouds that veil the midnight moon; How restlessly they speed, and gleam, and quiver",
+    "chinese": "我们恰似遮蔽午夜明月的云彩，疾驰、闪烁、颤动，永不停歇"
+  },
+  {
+    "title": "Ozymandias",
+    "author": "Percy Bysshe Shelley",
+    "translator": "江枫",
+    "english": "I met a traveller from an antique land Who said: Two vast and trunkless legs of stone",
+    "chinese": "我遇见一位来自古国的旅人，他说：有两条巨大的石腿，半掩于沙漠之间"
+  },
+  {
+    "title": "On First Looking into Chapman's Homer",
+    "author": "John Keats",
+    "translator": "屠岸",
+    "english": "Much have I travell'd in the realms of gold, And many goodly states and kingdoms seen;",
+    "chinese": "我游历过许多黄金的国度，见过不少美好的城邦与王国"
+  },
+  {
+    "title": "Ode to a Nightingale",
+    "author": "John Keats",
+    "translator": "屠岸",
+    "english": "My heart aches, and a drowsy numbness pains My sense, as though of hemlock I had drunk",
+    "chinese": "我的心在痛，困顿和麻木刺进了感官，有如饮过毒鸠"
+  },
+  {
+    "title": "Ode on a Grecian Urn",
+    "author": "John Keats",
+    "translator": "屠岸",
+    "english": "Thou still unravish'd bride of quietness, Thou foster-child of silence and slow time",
+    "chinese": "你委身“寂静”的、完美的处子，受过了“沉默”和“悠久”的抚育"
+  },
+  {
+    "title": "To Autumn",
+    "author": "John Keats",
+    "translator": "屠岸",
+    "english": "Season of mists and mellow fruitfulness, Close bosom-friend of the maturing sun",
+    "chinese": "雾气洋溢、果实圆熟的秋，你和成熟的太阳成为友伴"
+  },
+  {
+    "title": "Bright Star",
+    "author": "John Keats",
+    "translator": "屠岸",
+    "english": "Bright star, would I were stedfast as thou art— Not in lone splendour hung aloft the night",
+    "chinese": "明亮的星！我祈求像你那样坚定——但我不愿意高悬夜空，独自辉映"
+  },
+  {
+    "title": "The Road Not Taken",
+    "author": "Robert Frost",
+    "translator": "顾子欣",
+    "english": "Two roads diverged in a yellow wood, And sorry I could not travel both",
+    "chinese": "黄色的树林里分出两条路，可惜我不能同时去涉足"
+  },
+  {
+    "title": "Stopping by Woods on a Snowy Evening",
+    "author": "Robert Frost",
+    "translator": "余光中",
+    "english": "Whose woods these are I think I know. His house is in the village though;",
+    "chinese": "这是谁的树林我想我知道，他的家就在村子那头"
+  },
+  {
+    "title": "Fire and Ice",
+    "author": "Robert Frost",
+    "translator": "余光中",
+    "english": "Some say the world will end in fire, Some say in ice.",
+    "chinese": "有人说世界将毁灭于火，有人说，毁灭于冰。"
+  },
+  {
+    "title": "Birches",
+    "author": "Robert Frost",
+    "translator": "顾子欣",
+    "english": "When I see birches bend to left and right Across the lines of straighter darker trees",
+    "chinese": "当我看到白桦树弯下身子，向左，也向右，在排列更直、颜色更深的树林间"
+  },
+  {
+    "title": "Nothing Gold Can Stay",
+    "author": "Robert Frost",
+    "translator": "余光中",
+    "english": "Nature's first green is gold, Her hardest hue to hold.",
+    "chinese": "大自然的第一抹新绿是金，也是她最无力保留的颜色。"
+  },
+  {
+    "title": "If You Forget Me",
+    "author": "Pablo Neruda",
+    "translator": "李宗荣",
+    "english": "I want you to know one thing. You know how this is:",
+    "chinese": "我要你知道一件事。你知道这是怎么回事："
+  },
+  {
+    "title": "Tonight I Can Write",
+    "author": "Pablo Neruda",
+    "translator": "李宗荣",
+    "english": "Tonight I can write the saddest lines. I loved her, and sometimes she loved me too.",
+    "chinese": "今夜我可以写下最哀伤的诗句。我爱她，她有时也爱我。"
+  },
+  {
+    "title": "Ode to the Sea",
+    "author": "Pablo Neruda",
+    "translator": "李宗荣",
+    "english": "Sea, you alone are my poem, my unwritten poem, O vastness, O wildness, O endlessness",
+    "chinese": "大海，唯有你是我的诗，我未写成的诗，哦，浩瀚，哦，狂野，哦，无尽"
+  },
+  {
+    "title": "Ode to My Socks",
+    "author": "Pablo Neruda",
+    "translator": "李宗荣",
+    "english": "Maru Mori brought me a pair of socks which she knitted herself",
+    "chinese": "马鲁·莫里给我带来一双袜子，是她亲手织的"
+  },
+  {
+    "title": "The Song of the Despairing",
+    "author": "Pablo Neruda",
+    "translator": "李宗荣",
+    "english": "Despair is a black bird that flies over the sea, a bird without wings",
+    "chinese": "绝望是一只飞越海洋的黑鸟，一只没有翅膀的鸟"
+  },
+  {
+    "title": "Song of Myself",
+    "author": "Walt Whitman",
+    "translator": "赵萝蕤",
+    "english": "I celebrate myself, and sing myself, And what I assume you shall assume",
+    "chinese": "我赞美我自己，歌唱我自己，我所承担的，你也将承担"
+  },
+  {
+    "title": "I Hear America Singing",
+    "author": "Walt Whitman",
+    "translator": "赵萝蕤",
+    "english": "I hear America singing, the varied carols I hear, Those of mechanics, each one singing his as it should be blithe and strong",
+    "chinese": "我听见美国在歌唱，我听见各种各样的颂歌，机械工的歌，每个人都唱着他那快乐而强壮的歌"
+  },
+  {
+    "title": "A Noiseless Patient Spider",
+    "author": "Walt Whitman",
+    "translator": "赵萝蕤",
+    "english": "A noiseless patient spider, I mark'd where on a little promontory it stood isolated",
+    "chinese": "一只沉默而耐心的蜘蛛，我注意到它孤立地站在小小的海角上"
+  },
+  {
+    "title": "Out of the Cradle Endlessly Rocking",
+    "author": "Walt Whitman",
+    "translator": "赵萝蕤",
+    "english": "Out of the cradle endlessly rocking, Out of the mocking-bird's throat, the musical shuttle",
+    "chinese": "从永远摇摆的摇篮里，从知更鸟的喉咙里，音乐的梭子"
+  },
+  {
+    "title": "When I Heard the Learn'd Astronomer",
+    "author": "Walt Whitman",
+    "translator": "赵萝蕤",
+    "english": "When I heard the learn'd astronomer, When the proofs, the figures, were ranged in columns before me",
+    "chinese": "当我聆听博学的天文学家演讲，当那些证明、数据，一排排地列在我面前"
+  },
+  {
+    "title": "Because I Could Not Stop for Death",
+    "author": "Emily Dickinson",
+    "translator": "江枫",
+    "english": "Because I could not stop for Death, He kindly stopped for me;",
+    "chinese": "因为我不能停下来等待死神，他便好心地停下来接我。"
+  },
+  {
+    "title": "I'm Nobody! Who are you?",
+    "author": "Emily Dickinson",
+    "translator": "江枫",
+    "english": "I'm Nobody! Who are you? Are you – Nobody – too?",
+    "chinese": "我是无名之辈！你是谁？你也是无名之辈吗？"
+  },
+  {
+    "title": "Hope Is the Thing with Feathers",
+    "author": "Emily Dickinson",
+    "translator": "江枫",
+    "english": "Hope is the thing with feathers That perches in the soul",
+    "chinese": "希望是长着羽毛的小鸟，栖息在灵魂深处"
+  },
+  {
+    "title": "There's a Certain Slant of Light",
+    "author": "Emily Dickinson",
+    "translator": "江枫",
+    "english": "There's a certain Slant of light, Winter Afternoons – That oppresses, like the Heft",
+    "chinese": "冬日的下午，有一种斜射的光，令人压抑，有如"
+  },
+  {
+    "title": "I Dwell in Possibility",
+    "author": "Emily Dickinson",
+    "translator": "江枫",
+    "english": "I dwell in Possibility – A fairer House than Prose –",
+    "chinese": "我居住在可能性之中——一座比散文更美的房子——"
+  },
+  {
+    "title": "The Panther",
+    "author": "Rainer Maria Rilke",
+    "translator": "绿原",
+    "english": "His vision, from the constantly passing bars, has grown so weary that it cannot hold anything else.",
+    "chinese": "它的目光被那走不完的铁栏，缠得这般疲倦，什么也不能收留。"
+  },
+  {
+    "title": "Autumn Day",
+    "author": "Rainer Maria Rilke",
+    "translator": "绿原",
+    "english": "Lord, it is time. The summer was too long. Lay your shadow on the sundials",
+    "chinese": "主啊，是时候了。夏日曾经很盛大。把你的阴影落在日晷上"
+  },
+  {
+    "title": "Duino Elegies",
+    "author": "Rainer Maria Rilke",
+    "translator": "绿原",
+    "english": "Who, if I cried out, would hear me among the angels' hierarchies?",
+    "chinese": "谁，在天使的序列中，听到我呼喊？"
+  },
+  {
+    "title": "Letters to a Young Poet",
+    "author": "Rainer Maria Rilke",
+    "translator": "绿原",
+    "english": "You must love the questions themselves, like locked rooms and like books",
+    "chinese": "你要爱那些难题本身，就像爱那些锁闭的房间和书籍"
+  },
+  {
+    "title": "The Unicorn",
+    "author": "Rainer Maria Rilke",
+    "translator": "绿原",
+    "english": "The unicorn is a myth, but it is also a fact, a fact of the heart",
+    "chinese": "独角兽是神话，但也是事实，是心灵的事实"
+  },
+  {
+    "title": "Gitanjali",
+    "author": "Rabindranath Tagore",
+    "translator": "冰心",
+    "english": "Where the mind is without fear and the head is held high",
+    "chinese": "在那里，心是无畏的，头也抬得高昂"
+  },
+  {
+    "title": "The Gardener",
+    "author": "Rabindranath Tagore",
+    "translator": "冰心",
+    "english": "Pluck this little flower and take it, delay not! I fear lest it droop and drop into the dust.",
+    "chinese": "摘下这朵小花，拿走吧，不要迟延！我怕它会枯萎，落入尘土。"
+  },
+  {
+    "title": "Stray Birds",
+    "author": "Rabindranath Tagore",
+    "translator": "郑振铎",
+    "english": "Stray birds of summer come to my window to sing and fly away.",
+    "chinese": "夏天的飞鸟，飞到我的窗前唱歌，又飞去了。"
+  },
+  {
+    "title": "The Crescent Moon",
+    "author": "Rabindranath Tagore",
+    "translator": "冰心",
+    "english": "I shall cross the sea of time, and reach the shore of the eternal.",
+    "chinese": "我将穿越时间之海，抵达永恒的彼岸。"
+  },
+  {
+    "title": "Fruit-Gathering",
+    "author": "Rabindranath Tagore",
+    "translator": "冰心",
+    "english": "The night's flower was late but the morning flower came early.",
+    "chinese": "夜花迟开，晨花早放。"
+  },
+  {
+    "title": "The Prophet",
+    "author": "Kahlil Gibran",
+    "translator": "冰心",
+    "english": "And think not you can direct the course of love, for love, if it finds you worthy, directs your course.",
+    "chinese": "不要以为你能指引爱的方向，因为爱，若发现你配得上，自会指引你的方向。"
+  },
+  {
+    "title": "On Love",
+    "author": "Kahlil Gibran",
+    "translator": "冰心",
+    "english": "When love beckons to you, follow him, Though his ways are hard and steep.",
+    "chinese": "当爱向你招手时，跟随它，尽管它的道路艰难陡峭。"
+  },
+  {
+    "title": "On Friendship",
+    "author": "Kahlil Gibran",
+    "translator": "冰心",
+    "english": "And a youth said, Speak to us of Friendship. And he answered, saying:",
+    "chinese": "一个青年说，请给我们谈谈友谊。他回答说："
+  },
+  {
+    "title": "On Children",
+    "author": "Kahlil Gibran",
+    "translator": "冰心",
+    "english": "Your children are not your children. They are the sons and daughters of Life's longing for itself.",
+    "chinese": "你的孩子，其实不是你的孩子。他们是生命渴望自身的儿女。"
+  },
+  {
+    "title": "On Joy and Sorrow",
+    "author": "Kahlil Gibran",
+    "translator": "冰心",
+    "english": "Joy and sorrow are inseparable. Together they come and when one sits alone with you",
+    "chinese": "欢乐与悲伤不可分离。它们一同到来，当一个独自陪伴你时"
+  },
+  {
+    "title": "The Love Song of J. Alfred Prufrock",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "Let us go then, you and I, When the evening is spread out against the sky",
+    "chinese": "那么我们走吧，你和我，当夜晚在天边铺开"
+  },
+  {
+    "title": "The Hollow Men",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "We are the hollow men We are the stuffed men",
+    "chinese": "我们是空心人，我们是填塞起来的人"
+  },
+  {
+    "title": "The Waste Land",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "April is the cruellest month, breeding Lilacs out of the dead land",
+    "chinese": "四月是最残忍的月份，从死去的土地里培育出丁香"
+  },
+  {
+    "title": "Four Quartets",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "Time present and time past Are both perhaps present in time future",
+    "chinese": "现在的时间和过去的时间，也许都存在于未来的时间"
+  },
+  {
+    "title": "Journey of the Magi",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "A cold coming we had of it, Just the worst time of the year",
+    "chinese": "我们经历了一次寒冷的旅程，正是一年中最糟糕的时节"
+  },
+  {
+    "title": "The Library of Babel",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "The universe (which others call the Library) is composed of an indefinite, perhaps infinite number of hexagonal galleries.",
+    "chinese": "宇宙（别人称之为图书馆）由无数、或许无限的六角形回廊组成。"
+  },
+  {
+    "title": "The Aleph",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "In all that immense space, In books, in mirrors, in the labyrinths of memory",
+    "chinese": "在那浩瀚的空间里，在书中，在镜中，在记忆的迷宫里"
+  },
+  {
+    "title": "The Garden of Forking Paths",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "I leave to the various futures (not to all) my garden of forking paths.",
+    "chinese": "我把我那岔路纵横的花园留给各种未来（不是所有未来）。"
+  },
+  {
+    "title": "The Circular Ruins",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "No one saw him disembark in the unanimous night, no one saw the bamboo canoe sink into the sacred mud.",
+    "chinese": "没人看见他在漆黑的夜晚登岸，没人看见那只竹筏沉入神圣的泥沼。"
+  },
+  {
+    "title": "The Secret Miracle",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "The executioner raised his arm, and the world stopped.",
+    "chinese": "刽子手举起手臂，世界停止了。"
+  },
+  {
+    "title": "The Raven",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "Once upon a midnight dreary, while I pondered, weak and weary",
+    "chinese": "从前一个阴郁的子夜，我独自沉思，慵懒疲竭"
+  },
+  {
+    "title": "Annabel Lee",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "It was many and many a year ago, In a kingdom by the sea",
+    "chinese": "很久很久以前，在一个滨海的王国里"
+  },
+  {
+    "title": "The Tell-Tale Heart",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "True! – nervous – very, very dreadfully nervous I had been and am;",
+    "chinese": "真的！——紧张——我过去和现在都极度紧张；"
+  },
+  {
+    "title": "A Dream Within a Dream",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "Take this kiss upon the brow! And, in parting from you now",
+    "chinese": "在你额上印下这一吻！此刻与你分离"
+  },
+  {
+    "title": "The Bells",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "Hear the sledges with the bells – Silver bells!",
+    "chinese": "听那雪橇上的铃铛——银铃！"
+  },
+  {
+    "title": "Do Not Go Gentle into That Good Night",
+    "author": "Dylan Thomas",
+    "translator": "巫宁坤",
+    "english": "Do not go gentle into that good night, Old age should burn and rave at close of day;",
+    "chinese": "不要温和地走进那个良夜，老年应当在日暮时燃烧咆哮"
+  },
+  {
+    "title": "And Death Shall Have No Dominion",
+    "author": "Dylan Thomas",
+    "translator": "巫宁坤",
+    "english": "And death shall have no dominion. Dead men naked they shall be one",
+    "chinese": "死亡也并非是所向披靡。死去的人赤身裸体，他们将融为一体"
+  },
+  {
+    "title": "Fern Hill",
+    "author": "Dylan Thomas",
+    "translator": "巫宁坤",
+    "english": "Now as I was young and easy under the apple boughs",
+    "chinese": "我曾年轻自在，在苹果树枝下"
+  },
+  {
+    "title": "In My Craft or Sullen Art",
+    "author": "Dylan Thomas",
+    "translator": "巫宁坤",
+    "english": "In my craft or sullen art Exercised in the still night",
+    "chinese": "在我的手艺或沉郁的艺术中，在寂静的夜晚练习"
+  },
+  {
+    "title": "The Force That Through the Green Fuse Drives the Flower",
+    "author": "Dylan Thomas",
+    "translator": "巫宁坤",
+    "english": "The force that through the green fuse drives the flower Drives my green age;",
+    "chinese": "那通过绿色导火索催动花朵的力，也催动我绿色的年华"
+  },
+  {
+    "title": "The Tiger",
+    "author": "William Blake",
+    "translator": "梁宗岱",
+    "english": "Tiger Tiger, burning bright, In the forests of the night;",
+    "chinese": "老虎！老虎！黑夜的森林中，燃烧着煌煌的火光"
+  },
+  {
+    "title": "The Lamb",
+    "author": "William Blake",
+    "translator": "梁宗岱",
+    "english": "Little Lamb, who made thee? Dost thou know who made thee?",
+    "chinese": "小羊羔，谁造了你？你可知道谁造了你？"
+  },
+  {
+    "title": "A Poison Tree",
+    "author": "William Blake",
+    "translator": "梁宗岱",
+    "english": "I was angry with my friend: I told my wrath, my wrath did end.",
+    "chinese": "我对朋友发怒：我说出愤怒，愤怒便平息。"
+  },
+  {
+    "title": "London",
+    "author": "William Blake",
+    "translator": "梁宗岱",
+    "english": "I wander through each chartered street, Near where the chartered Thames does flow",
+    "chinese": "我走过每条特许的街道，在特许的泰晤士河流近旁"
+  },
+  {
+    "title": "The Tyger",
+    "author": "William Blake",
+    "translator": "梁宗岱",
+    "english": "What immortal hand or eye, Could frame thy fearful symmetry?",
+    "chinese": "是怎样的铁手、怎样的铁眼，能造出你那可怕的对称？"
+  },
+  {
+    "title": "She Walks in Beauty",
+    "author": "Lord Byron",
+    "translator": "查良铮",
+    "english": "She walks in beauty, like the night Of cloudless climes and starry skies;",
+    "chinese": "她走在美的光彩中，像夜晚，皎洁无云而且繁星满天"
+  },
+  {
+    "title": "When We Two Parted",
+    "author": "Lord Byron",
+    "translator": "查良铮",
+    "english": "When we two parted In silence and tears, Half broken-hearted",
+    "chinese": "想从前我们俩分手，默默无言地流着泪，心都碎了"
+  },
+  {
+    "title": "So We'll Go No More A-Roving",
+    "author": "Lord Byron",
+    "translator": "查良铮",
+    "english": "So, we'll go no more a-roving So late into the night, Though the heart be still as loving",
+    "chinese": "我们将不再漫游，深夜也不再，尽管心依旧充满爱意"
+  },
+  {
+    "title": "The Destruction of Sennacherib",
+    "author": "Lord Byron",
+    "translator": "查良铮",
+    "english": "The Assyrian came down like the wolf on the fold, And his cohorts were gleaming in purple and gold",
+    "chinese": "亚述人来了，像狼扑进羊群，他的队伍在紫金色中闪耀"
+  },
+  {
+    "title": "Childe Harold's Pilgrimage",
+    "author": "Lord Byron",
+    "translator": "查良铮",
+    "english": "There is a pleasure in the pathless woods, There is a rapture on the lonely shore",
+    "chinese": "无路的森林中自有乐趣，寂寞的海岸上自有狂喜"
+  },
+  {
+    "title": "Kubla Khan",
+    "author": "Samuel Taylor Coleridge",
+    "translator": "屠岸",
+    "english": "In Xanadu did Kubla Khan A stately pleasure-dome decree:",
+    "chinese": "忽必列汗在上都曾经，下令造一座堂皇的安乐殿堂："
+  },
+  {
+    "title": "The Rime of the Ancient Mariner",
+    "author": "Samuel Taylor Coleridge",
+    "translator": "屠岸",
+    "english": "It is an ancient Mariner, And he stoppeth one of three.",
+    "chinese": "是一个年迈的水手，他拦住了三个行人中的一个。"
+  },
+  {
+    "title": "Frost at Midnight",
+    "author": "Samuel Taylor Coleridge",
+    "translator": "屠岸",
+    "english": "The Frost performs its secret ministry, Unhelped by any wind.",
+    "chinese": "寒霜在执行它秘密的使命，没有一丝风的帮助。"
+  },
+  {
+    "title": "Dejection: An Ode",
+    "author": "Samuel Taylor Coleridge",
+    "translator": "屠岸",
+    "english": "Well! They are gone, and here must I remain, This lime-tree bower my prison!",
+    "chinese": "好吧！他们走了，我却必须留在这里，这椴树凉亭就是我的监狱！"
+  },
+  {
+    "title": "Christabel",
+    "author": "Samuel Taylor Coleridge",
+    "translator": "屠岸",
+    "english": "Is the night chilly and dark? The night is chilly, but not dark.",
+    "chinese": "夜晚寒冷而黑暗吗？夜晚寒冷，但并不黑暗。"
+  },
+  {
+    "title": "The World Is Too Much With Us",
+    "author": "William Wordsworth",
+    "translator": "屠岸",
+    "english": "The world is too much with us; late and soon, Getting and spending, we lay waste our powers;",
+    "chinese": "世事对我们太过分；无论早晚，我们获取和消费，耗尽了我们的力量"
+  },
+  {
+    "title": "I Wandered Lonely as a Cloud",
+    "author": "William Wordsworth",
+    "translator": "屠岸",
+    "english": "I wandered lonely as a cloud That floats on high o'er vales and hills",
+    "chinese": "我孤独地漫游，像一朵云，在山丘和谷地上飘荡"
+  },
+  {
+    "title": "Composed Upon Westminster Bridge",
+    "author": "William Wordsworth",
+    "translator": "屠岸",
+    "english": "Earth has not anything to show more fair: Dull would he be of soul who could pass by",
+    "chinese": "大地再没有比这儿更美的风光：凡能路过而不驻足的人，灵魂必是迟钝的"
+  },
+  {
+    "title": "Lines Composed a Few Miles Above Tintern Abbey",
+    "author": "William Wordsworth",
+    "translator": "屠岸",
+    "english": "Five years have past; five summers, with the length Of five long winters!",
+    "chinese": "五年过去了；五个夏天，还有五个漫长的冬天！"
+  },
+  {
+    "title": "My Heart Leaps Up",
+    "author": "William Wordsworth",
+    "translator": "屠岸",
+    "english": "My heart leaps up when I behold A rainbow in the sky:",
+    "chinese": "每当我看见天上的彩虹，我的心就会欢跳："
+  },
+  {
+    "title": "The Lady of Shalott",
+    "author": "Alfred Tennyson",
+    "translator": "黄杲炘",
+    "english": "On either side the river lie Long fields of barley and of rye",
+    "chinese": "河的两岸，大片的大麦和黑麦田，一直延伸到远方"
+  },
+  {
+    "title": "Break, Break, Break",
+    "author": "Alfred Tennyson",
+    "translator": "黄杲炘",
+    "english": "Break, break, break, On thy cold gray stones, O Sea!",
+    "chinese": "冲吧，冲吧，冲吧，大海啊，冲在你冰冷的灰色岩石上！"
+  },
+  {
+    "title": "Ulysses",
+    "author": "Alfred Tennyson",
+    "translator": "黄杲炘",
+    "english": "It little profits that an idle king, By this still hearth, among these barren crags",
+    "chinese": "一个闲散的国王，守着这寂静的炉火，在这些荒瘠的岩石间，毫无益处"
+  },
+  {
+    "title": "In Memoriam A.H.H.",
+    "author": "Alfred Tennyson",
+    "translator": "黄杲炘",
+    "english": "I hold it true, whate'er befall; I feel it, when I sorrow most;",
+    "chinese": "无论发生什么，我都坚信；在我最悲伤的时候，我感受到了"
+  },
+  {
+    "title": "The Charge of the Light Brigade",
+    "author": "Alfred Tennyson",
+    "translator": "黄杲炘",
+    "english": "Half a league, half a league, Half a league onward, All in the valley of Death",
+    "chinese": "半里格，半里格，半里格向前，全都冲进死亡之谷"
+  },
+  {
+    "title": "The Hound of Heaven",
+    "author": "Francis Thompson",
+    "translator": "屠岸",
+    "english": "I fled Him, down the nights and down the days; I fled Him, down the arches of the years;",
+    "chinese": "我逃避他，穿过一个个黑夜，一个个白昼；我逃避他，穿过岁月的拱门"
+  },
+  {
+    "title": "The Wind on the Downs",
+    "author": "Francis Thompson",
+    "translator": "屠岸",
+    "english": "The wind on the downs is a wild thing, A thing of the sky and the sea",
+    "chinese": "丘陵上的风是狂野的，是天空和大海的精灵"
+  },
+  {
+    "title": "The Kingdom of God",
+    "author": "Francis Thompson",
+    "translator": "屠岸",
+    "english": "The Kingdom of God is within you, And without you, And around you",
+    "chinese": "上帝的王国在你心中，在你之外，在你周围"
+  },
+  {
+    "title": "The Poet",
+    "author": "Francis Thompson",
+    "translator": "屠岸",
+    "english": "The poet is a seer, He sees the invisible, He hears the inaudible",
+    "chinese": "诗人是先知，他看见无形的，听见无声的"
+  },
+  {
+    "title": "The Song of the Soul",
+    "author": "Francis Thompson",
+    "translator": "屠岸",
+    "english": "My soul is a bird, It flies in the sky, It sings in the wind",
+    "chinese": "我的灵魂是一只鸟，它在天空飞翔，它在风中歌唱"
+  },
+  {
+    "title": "The Darkling Thrush",
+    "author": "Thomas Hardy",
+    "translator": "飞白",
+    "english": "I leant upon a coppice gate When Frost was spectre-gray",
+    "chinese": "我倚在矮林的门边，当寒霜如幽灵般灰白"
+  },
+  {
+    "title": "Afterwards",
+    "author": "Thomas Hardy",
+    "translator": "飞白",
+    "english": "When the Present has latched its postern behind my tremulous stay",
+    "chinese": "当现在在我颤抖的停留之后，闩上了它的后门"
+  },
+  {
+    "title": "The Oxen",
+    "author": "Thomas Hardy",
+    "translator": "飞白",
+    "english": "Christmas Eve, and twelve of the clock. 'Now they are all on their knees,'",
+    "chinese": "圣诞夜，十二点整。‘现在他们全都跪下了，’"
+  },
+  {
+    "title": "Neutral Tones",
+    "author": "Thomas Hardy",
+    "translator": "飞白",
+    "english": "We stood by a pond that winter day, And the sun was white, as though chidden of God",
+    "chinese": "冬日里，我们站在池塘边，太阳惨白，仿佛被上帝斥责"
+  },
+  {
+    "title": "The Convergence of the Twain",
+    "author": "Thomas Hardy",
+    "translator": "飞白",
+    "english": "In a solitude of the sea Deep from human vanity",
+    "chinese": "在大海的孤寂中，远离人类的虚荣"
+  },
+  {
+    "title": "The Soldier",
+    "author": "Rupert Brooke",
+    "translator": "飞白",
+    "english": "If I should die, think only this of me: That there's some corner of a foreign field",
+    "chinese": "如果我死去，你只需这样想：在异国的田野上，有一个角落"
+  },
+  {
+    "title": "Grantchester",
+    "author": "Rupert Brooke",
+    "translator": "飞白",
+    "english": "The old Vicarage, how well I know it! The orchard where the pear-trees blow",
+    "chinese": "老牧师住宅，我多么熟悉！梨树在果园里摇曳"
+  },
+  {
+    "title": "Peace",
+    "author": "Rupert Brooke",
+    "translator": "飞白",
+    "english": "Now, God be thanked Who has matched us with His hour",
+    "chinese": "现在，感谢上帝，让我们与他的时刻相配"
+  },
+  {
+    "title": "The Dead",
+    "author": "Rupert Brooke",
+    "translator": "飞白",
+    "english": "Blow out, you bugles, over the rich Dead!",
+    "chinese": "吹吧，你们的号角，吹向富有的死者！"
+  },
+  {
+    "title": "Day",
+    "author": "Rupert Brooke",
+    "translator": "飞白",
+    "english": "The day has come, the sun has risen, The birds have sung their song",
+    "chinese": "白天来临，太阳升起，鸟儿唱着它们的歌"
+  },
+  {
+    "title": "The Love Song of J. Alfred Prufrock",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "Let us go then, you and I, When the evening is spread out against the sky",
+    "chinese": "那么我们走吧，你和我，当夜晚在天边铺开"
+  },
+  {
+    "title": "The Hollow Men",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "We are the hollow men We are the stuffed men",
+    "chinese": "我们是空心人，我们是填塞起来的人"
+  },
+  {
+    "title": "The Waste Land",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "April is the cruellest month, breeding Lilacs out of the dead land",
+    "chinese": "四月是最残忍的月份，从死去的土地里培育出丁香"
+  },
+  {
+    "title": "Four Quartets",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "Time present and time past Are both perhaps present in time future",
+    "chinese": "现在的时间和过去的时间，也许都存在于未来的时间"
+  },
+  {
+    "title": "Journey of the Magi",
+    "author": "T.S. Eliot",
+    "translator": "查良铮",
+    "english": "A cold coming we had of it, Just the worst time of the year",
+    "chinese": "我们经历了一次寒冷的旅程，正是一年中最糟糕的时节"
+  },
+  {
+    "title": "The Library of Babel",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "The universe (which others call the Library) is composed of an indefinite, perhaps infinite number of hexagonal galleries.",
+    "chinese": "宇宙（别人称之为图书馆）由无数、或许无限的六角形回廊组成。"
+  },
+  {
+    "title": "The Aleph",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "In all that immense space, In books, in mirrors, in the labyrinths of memory",
+    "chinese": "在那浩瀚的空间里，在书中，在镜中，在记忆的迷宫里"
+  },
+  {
+    "title": "The Garden of Forking Paths",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "I leave to the various futures (not to all) my garden of forking paths.",
+    "chinese": "我把我那岔路纵横的花园留给各种未来（不是所有未来）。"
+  },
+  {
+    "title": "The Circular Ruins",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "No one saw him disembark in the unanimous night, no one saw the bamboo canoe sink into the sacred mud.",
+    "chinese": "没人看见他在漆黑的夜晚登岸，没人看见那只竹筏沉入神圣的泥沼。"
+  },
+  {
+    "title": "The Secret Miracle",
+    "author": "Jorge Luis Borges",
+    "translator": "王永年",
+    "english": "The executioner raised his arm, and the world stopped.",
+    "chinese": "刽子手举起手臂，世界停止了。"
+  },
+  {
+    "title": "The Raven",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "Once upon a midnight dreary, while I pondered, weak and weary",
+    "chinese": "从前一个阴郁的子夜，我独自沉思，慵懒疲竭"
+  },
+  {
+    "title": "Annabel Lee",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "It was many and many a year ago, In a kingdom by the sea",
+    "chinese": "很久很久以前，在一个滨海的王国里"
+  },
+  {
+    "title": "The Tell-Tale Heart",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "True! – nervous – very, very dreadfully nervous I had been and am;",
+    "chinese": "真的！——紧张——我过去和现在都极度紧张；"
+  },
+  {
+    "title": "A Dream Within a Dream",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "Take this kiss upon the brow! And, in parting from you now",
+    "chinese": "在你额上印下这一吻！此刻与你分离"
+  },
+  {
+    "title": "The Bells",
+    "author": "Edgar Allan Poe",
+    "translator": "曹明伦",
+    "english": "Hear the sledges with the bells – Silver bells!",
+    "chinese": "听那雪橇上的铃铛——银铃！"
+  }
+]

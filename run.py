@@ -1,6 +1,7 @@
 from pathlib import Path
 import atexit
 import ctypes
+import subprocess
 import yaml
 
 from ncatbot.core import BotClient
@@ -22,6 +23,25 @@ def load_runtime_config(config_path: Path) -> dict:
     with open(config_path, "r", encoding="utf-8") as f:
         content = yaml.safe_load(f) or {}
         return content if isinstance(content, dict) else {}
+
+
+def prepare_plugin_runtime_dir(current_dir: Path, plugin_name: str) -> Path:
+    runtime_root = current_dir.parent / ".ncatbot_plugins_runtime"
+    runtime_root.mkdir(parents=True, exist_ok=True)
+    link_path = runtime_root / plugin_name
+
+    if link_path.exists():
+        return runtime_root
+
+    cmd = ["cmd", "/c", "mklink", "/J", str(link_path), str(current_dir)]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print("⚠️ 创建插件运行目录联接失败，将回退到默认插件目录。")
+        if result.stderr:
+            print(result.stderr.strip())
+        return current_dir.parent
+
+    return runtime_root
 
 
 class SingleInstanceLock:
@@ -52,6 +72,7 @@ if __name__ == "__main__":
     parent_dir = current_dir.parent
     plugin_name = current_dir.name
     config_path = current_dir / "config.yaml"
+    plugins_dir = prepare_plugin_runtime_dir(current_dir, plugin_name)
     mutex_name = f"Local\\NcatBot_{str(current_dir).replace(':', '_').replace('\\', '_').replace('/', '_')}"
     instance_lock = SingleInstanceLock(mutex_name)
 
@@ -72,22 +93,36 @@ if __name__ == "__main__":
     )
     ws_token = (ws_token or "").strip()
     bt_uin = runtime_config.get("bt_uin")
+    enable_webui_interaction = runtime_config.get("enable_webui_interaction")
+    if not isinstance(enable_webui_interaction, bool):
+        enable_webui_interaction = False
 
     if not ws_uri:
         print("❌ 配置缺失：config.yaml 需要提供 ws_uri")
         raise SystemExit(1)
 
-    ncatbot_config.plugin.update_value("plugins_dir", str(parent_dir))
+    ncatbot_config.update_value("debug", False)
+    ncatbot_config.plugin.update_value("plugins_dir", str(plugins_dir))
     ncatbot_config.plugin.update_value("plugin_whitelist", [plugin_name])
     ncatbot_config.plugin.update_value("plugin_blacklist", [])
     ncatbot_config.plugin.update_value("skip_plugin_load", False)
+    if hasattr(ncatbot_config, "napcat"):
+        ncatbot_config.napcat.update_value("ws_uri", ws_uri)
+        ncatbot_config.napcat.update_value("ws_token", ws_token)
+        ws_listen_ip = napcat_config.get("ws_listen_ip")
+        if isinstance(ws_listen_ip, str) and ws_listen_ip.strip():
+            ncatbot_config.napcat.update_value("ws_listen_ip", ws_listen_ip.strip())
+        remote_mode = napcat_config.get("remote_mode")
+        if isinstance(remote_mode, bool):
+            ncatbot_config.napcat.update_value("remote_mode", remote_mode)
 
     print("🚀 正在启动机器人...")
     print(f"📂 配置文件: {config_path}")
-    print(f"📦 插件目录: {parent_dir}")
+    print(f"📦 插件目录: {plugins_dir}")
     print(f"✅ 仅加载插件: {plugin_name}")
     print(f"🔌 WebSocket 地址: {ws_uri}")
     print(f"🔐 WebSocket 鉴权: {'已启用' if ws_token else '未启用'}")
+    print(f"🧭 WebUI 交互授权: {'开启' if enable_webui_interaction else '关闭'}")
     if not bt_uin:
         print("⚠️ 未在 config.yaml 配置 bt_uin，启动时可能会要求手动输入 QQ 号")
 
@@ -99,6 +134,7 @@ if __name__ == "__main__":
         run_kwargs["ws_token"] = ws_token
     if bt_uin:
         run_kwargs["bt_uin"] = str(bt_uin)
+    run_kwargs["enable_webui_interaction"] = enable_webui_interaction
 
     try:
         bot.run(**run_kwargs)

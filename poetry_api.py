@@ -15,6 +15,7 @@ import re
 from html import unescape
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
+from urllib.parse import quote_plus
 
 LOG = get_log("PoetryPlugin-API")
 
@@ -25,6 +26,11 @@ MODERN_POETRY_FALLBACK_APIS = [
 
 FOREIGN_POETRY_FALLBACK_APIS = [
     FOREIGN_BILINGUAL_POETRY_API,
+]
+
+SEARCH_ENGINE_URLS = [
+    "https://duckduckgo.com/html/?q={query}",
+    "https://www.bing.com/search?q={query}",
 ]
 
 POETRY_LIBRARY_DIR = Path(__file__).resolve().parent / "data" / "poetry_library"
@@ -49,6 +55,12 @@ def _load_library_file(path: Path, expected_item_type: type, fallback: List) -> 
     except Exception as e:
         LOG.error(f"加载诗歌库失败 {path}: {e}")
         return fallback
+
+
+def _split_clean_lines(text: str) -> List[str]:
+    normalized = (text or "").replace("\r", "\n").replace("\u3000", " ").replace("\xa0", " ")
+    lines = [re.sub(r"\s+", " ", line).strip() for line in normalized.split("\n")]
+    return [line for line in lines if line]
 
 class PoetryAPI:
     """诗歌API请求类"""
@@ -155,23 +167,40 @@ class PoetryAPI:
         "爱情": ["情", "爱", "相思", "红豆", "佳人", "伊人", "君", "妾"],
     }
 
+    MODERN_NOISE_LINES = {
+        "中国诗歌库",
+        "中华诗库",
+        "中国诗典",
+        "中国诗人",
+        "中国诗坛",
+        "首页",
+        "上一首",
+        "下一首",
+        "返回",
+        "目录",
+    }
+
     @staticmethod
     def _load_external_libraries() -> None:
-        PoetryAPI.LOCAL_POEM_LIBRARY = _load_library_file(
+        loaded_classic = _load_library_file(
             CLASSIC_LIBRARY_FILE,
             dict,
             PoetryAPI.LOCAL_POEM_LIBRARY,
         )
-        PoetryAPI.LOCAL_MODERN_POEMS = _load_library_file(
+        loaded_modern = _load_library_file(
             MODERN_LIBRARY_FILE,
             str,
             PoetryAPI.LOCAL_MODERN_POEMS,
         )
-        PoetryAPI.LOCAL_FOREIGN_POEMS = _load_library_file(
+        loaded_foreign = _load_library_file(
             FOREIGN_LIBRARY_FILE,
             dict,
             PoetryAPI.LOCAL_FOREIGN_POEMS,
         )
+
+        PoetryAPI.LOCAL_POEM_LIBRARY = PoetryAPI._normalize_classic_library(loaded_classic)
+        PoetryAPI.LOCAL_MODERN_POEMS = PoetryAPI._normalize_modern_library(loaded_modern)
+        PoetryAPI.LOCAL_FOREIGN_POEMS = PoetryAPI._normalize_foreign_library(loaded_foreign)
 
         LOG.info(
             "本地诗歌库已加载: classic=%d, modern=%d, foreign=%d",
@@ -179,6 +208,147 @@ class PoetryAPI:
             len(PoetryAPI.LOCAL_MODERN_POEMS),
             len(PoetryAPI.LOCAL_FOREIGN_POEMS),
         )
+
+    @staticmethod
+    def _normalize_classic_library(items: List[Dict]) -> List[Dict]:
+        normalized: List[Dict] = []
+        seen = set()
+
+        for item in items:
+            title = str(item.get("title", "")).strip()
+            author = str(item.get("author", "")).strip()
+            content = "\n".join(_split_clean_lines(str(item.get("content", ""))))
+            if not title or not author or not content:
+                continue
+
+            style_raw = str(item.get("style", "")).strip()
+            style = PoetryAPI.STYLE_ALIAS.get(style_raw, style_raw)
+            if style not in {"婉约派", "豪放派"}:
+                style = "豪放派" if author in PoetryAPI.STYLE_POETS["豪放派"] else "婉约派"
+
+            tags_raw = item.get("tags")
+            tags = [str(x).strip() for x in tags_raw] if isinstance(tags_raw, list) else []
+            tags = [t for t in tags if t in PoetryAPI.TOPIC_KEYWORDS]
+            if not tags:
+                target = f"{title}\n{content}"
+                for k, words in PoetryAPI.TOPIC_KEYWORDS.items():
+                    if any(w in target for w in words):
+                        tags.append(k)
+                if not tags:
+                    tags = ["山水"]
+
+            key = (title, author)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            normalized.append(
+                {
+                    "title": title,
+                    "author": author,
+                    "content": content,
+                    "style": style,
+                    "tags": tags[:3],
+                }
+            )
+
+        return normalized or PoetryAPI.LOCAL_POEM_LIBRARY
+
+    @staticmethod
+    def _normalize_modern_library(items: List[str]) -> List[str]:
+        normalized: List[str] = []
+        seen = set()
+
+        for raw in items:
+            lines = _split_clean_lines(raw)
+            if len(lines) < 3:
+                continue
+
+            title = lines[0].strip()
+            if "中华诗库" in title:
+                continue
+            if not title.startswith("《"):
+                title = f"《{title.strip('《》')}》"
+
+            author = lines[1].strip()
+            content_lines = lines[2:]
+
+            if content_lines and content_lines[0].endswith("诗集") and len(content_lines[0]) <= 20:
+                if author in {"", "未知作者"}:
+                    guessed = content_lines[0].replace("诗集", "").strip("《》 ")
+                    author = guessed or "未知作者"
+                content_lines = content_lines[1:]
+
+            if author.endswith("诗集") and len(author) <= 20:
+                author = author.replace("诗集", "").strip("《》 ") or "未知作者"
+
+            filtered = []
+            for line in content_lines:
+                if line in PoetryAPI.MODERN_NOISE_LINES:
+                    continue
+                if line.endswith("诗集") and len(line) <= 20:
+                    continue
+                if re.search(r"^(中国诗歌库|中华诗库|中国诗典|中国诗人|中国诗坛|首页)$", line):
+                    continue
+                if re.search(r"^[①②③④⑤⑥⑦⑧⑨⑩\d]+[、.．]\s*", line):
+                    continue
+                filtered.append(line)
+
+            if len(filtered) < 1:
+                continue
+
+            text_block = "\n".join([title, author] + filtered)
+            if text_block in seen:
+                continue
+            seen.add(text_block)
+
+            normalized.append(text_block)
+
+        if not normalized:
+            return PoetryAPI.LOCAL_MODERN_POEMS
+
+        min_expected = max(20, len(items) // 2)
+        if len(items) >= 20 and len(normalized) < min_expected:
+            LOG.warning(
+                "现代诗库标准化后数量异常下降（raw=%d, normalized=%d），回退原始数据",
+                len(items),
+                len(normalized),
+            )
+            return items
+
+        return normalized
+
+    @staticmethod
+    def _normalize_foreign_library(items: List[Dict]) -> List[Dict]:
+        normalized: List[Dict] = []
+        seen = set()
+
+        for item in items:
+            title = str(item.get("title", "")).strip() or "未知标题"
+            author = str(item.get("author", "")).strip() or "未知作者"
+            translator = str(item.get("translator", "")).strip() or "未知"
+            english = "\n".join(_split_clean_lines(str(item.get("english", ""))))
+            chinese = "\n".join(_split_clean_lines(str(item.get("chinese", ""))))
+
+            if not english and not chinese:
+                continue
+
+            key = (title, author)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            normalized.append(
+                {
+                    "title": title,
+                    "author": author,
+                    "translator": translator,
+                    "english": english or "（无）",
+                    "chinese": chinese or "（无）",
+                }
+            )
+
+        return normalized or PoetryAPI.LOCAL_FOREIGN_POEMS
     
     @staticmethod
     async def get_random_poetry() -> Optional[str]:
@@ -206,6 +376,11 @@ class PoetryAPI:
         if fallback_text:
             return fallback_text
 
+        for poetry_type, keyword in [("classic", "古诗词"), ("modern", "现代诗"), ("foreign", "英文诗")]:
+            search_engine_result = await PoetryAPI._search_via_search_engine(keyword, poetry_type)
+            if search_engine_result:
+                return search_engine_result
+
         local_candidates = [
             PoetryAPI._get_local_classic_poetry(),
             format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern"),
@@ -221,18 +396,33 @@ class PoetryAPI:
             poetry_text = await PoetryAPI._request_api(CLASSIC_POETRY_API)
             if poetry_text:
                 return poetry_text
+
+            search_engine_result = await PoetryAPI._search_via_search_engine("古诗词", "classic")
+            if search_engine_result:
+                return search_engine_result
+
             return PoetryAPI._get_local_classic_poetry()
         elif poetry_type == "modern":
             for api_url in MODERN_POETRY_FALLBACK_APIS:
                 poetry_text = await PoetryAPI._request_api(api_url)
                 if poetry_text:
                     return poetry_text
+
+            search_engine_result = await PoetryAPI._search_via_search_engine("现代诗", "modern")
+            if search_engine_result:
+                return search_engine_result
+
             return format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern")
         elif poetry_type == "foreign":
             for api_url in FOREIGN_POETRY_FALLBACK_APIS:
                 poetry_text = await PoetryAPI._request_api(api_url)
                 if poetry_text:
                     return poetry_text
+
+            search_engine_result = await PoetryAPI._search_via_search_engine("英文诗", "foreign")
+            if search_engine_result:
+                return search_engine_result
+
             return PoetryAPI._get_local_foreign_poetry()
         else:
             return None
@@ -298,6 +488,272 @@ class PoetryAPI:
         author = str(selected.get("author", "未知作者")).strip() or "未知作者"
         poem_content = str(selected.get("content", "")).strip()
         return format_poetry(f"{title}\n{author}\n{poem_content}", "classic")
+
+    @staticmethod
+    async def search_poetry(keyword: str, poetry_type: str = "all") -> Optional[str]:
+        """关键词检索诗歌：先 API 联网，再搜索引擎，最后本地检索"""
+        normalized_keyword = (keyword or "").strip()
+        normalized_type = (poetry_type or "all").strip().lower() or "all"
+        if not normalized_keyword:
+            return None
+
+        online_result = await PoetryAPI._search_online_poetry(normalized_keyword, normalized_type)
+        if online_result:
+            return online_result
+
+        return PoetryAPI._search_local_poetry(normalized_keyword, normalized_type)
+
+    @staticmethod
+    def _search_local_poetry(keyword: str, poetry_type: str) -> Optional[str]:
+        if poetry_type in {"all", "classic"}:
+            classic_matches = []
+            for item in PoetryAPI.LOCAL_POEM_LIBRARY:
+                title = str(item.get("title", "")).strip()
+                author = str(item.get("author", "")).strip()
+                poem_content = str(item.get("content", "")).strip()
+                tags = item.get("tags")
+                tags_text = " ".join(tags) if isinstance(tags, list) else ""
+                searchable = f"{title}\n{author}\n{poem_content}\n{tags_text}"
+                if not PoetryAPI._contains_keyword(searchable, keyword):
+                    continue
+                classic_matches.append(format_poetry(f"{title}\n{author}\n{poem_content}", "classic"))
+
+            if classic_matches:
+                return random.choice(classic_matches)
+
+        if poetry_type in {"all", "modern"}:
+            modern_matches = []
+            for poem_text in PoetryAPI.LOCAL_MODERN_POEMS:
+                if PoetryAPI._contains_keyword(poem_text, keyword):
+                    modern_matches.append(format_poetry(poem_text, "modern"))
+
+            if modern_matches:
+                return random.choice(modern_matches)
+
+        if poetry_type in {"all", "foreign"}:
+            foreign_matches = []
+            for item in PoetryAPI.LOCAL_FOREIGN_POEMS:
+                title = str(item.get("title", "未知标题")).strip() or "未知标题"
+                author = str(item.get("author", "未知作者")).strip() or "未知作者"
+                translator = str(item.get("translator", "未知")).strip() or "未知"
+                english = str(item.get("english", "（无）")).strip() or "（无）"
+                chinese = str(item.get("chinese", "（无）")).strip() or "（无）"
+                searchable = f"{title}\n{author}\n{translator}\n{english}\n{chinese}"
+                if not PoetryAPI._contains_keyword(searchable, keyword):
+                    continue
+                block = f"{title}\n作者：{author}\n译者：{translator}\n\n英文：\n{english}\n\n中文：\n{chinese}"
+                foreign_matches.append(format_poetry(block, "foreign"))
+
+            if foreign_matches:
+                return random.choice(foreign_matches)
+
+        return None
+
+    @staticmethod
+    async def _search_online_poetry(keyword: str, poetry_type: str) -> Optional[str]:
+        if poetry_type in {"all", "classic"}:
+            classic_result = await PoetryAPI._search_online_classic_poetry(keyword)
+            if classic_result:
+                return classic_result
+
+        if poetry_type in {"all", "modern"}:
+            modern_result = await PoetryAPI._search_online_modern_poetry(keyword)
+            if modern_result:
+                return modern_result
+
+        if poetry_type in {"all", "foreign"}:
+            foreign_result = await PoetryAPI._search_online_foreign_poetry(keyword)
+            if foreign_result:
+                return foreign_result
+
+        search_engine_result = await PoetryAPI._search_via_search_engine(keyword, poetry_type)
+        if search_engine_result:
+            return search_engine_result
+
+        return None
+
+    @staticmethod
+    async def _search_online_classic_poetry(keyword: str) -> Optional[str]:
+        candidates = await PoetryAPI._fetch_poetry_candidates()
+        classic_matches = []
+        for item in candidates:
+            title = str(item.get("title", "")).strip()
+            author = str(item.get("author", "")).strip()
+            poem_content = str(item.get("content", "")).strip()
+            searchable = f"{title}\n{author}\n{poem_content}"
+            formatted = format_poetry(f"{title}\n{author}\n{poem_content}", "classic")
+            if not PoetryAPI._contains_keyword(searchable, keyword):
+                continue
+            classic_matches.append(formatted)
+
+        if classic_matches:
+            return random.choice(classic_matches)
+
+        for _ in range(max(RETRY_TIMES, 2)):
+            poetry_text = await PoetryAPI._request_api(CLASSIC_POETRY_API)
+            if not poetry_text:
+                continue
+            if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
+                return poetry_text
+
+        return None
+
+    @staticmethod
+    async def _search_online_modern_poetry(keyword: str) -> Optional[str]:
+        if not MODERN_POETRY_FALLBACK_APIS:
+            return None
+
+        max_attempts = max(8, len(MODERN_POETRY_FALLBACK_APIS) * 2)
+        for attempt in range(max_attempts):
+            api_url = MODERN_POETRY_FALLBACK_APIS[attempt % len(MODERN_POETRY_FALLBACK_APIS)]
+            poetry_text = await PoetryAPI._request_api(api_url)
+            if not poetry_text:
+                continue
+            if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
+                return poetry_text
+
+        return None
+
+    @staticmethod
+    async def _search_online_foreign_poetry(keyword: str) -> Optional[str]:
+        if not FOREIGN_POETRY_FALLBACK_APIS:
+            return None
+
+        max_attempts = max(8, len(FOREIGN_POETRY_FALLBACK_APIS) * 2)
+        for attempt in range(max_attempts):
+            api_url = FOREIGN_POETRY_FALLBACK_APIS[attempt % len(FOREIGN_POETRY_FALLBACK_APIS)]
+            poetry_text = await PoetryAPI._request_api(api_url)
+            if not poetry_text:
+                continue
+            if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
+                return poetry_text
+
+        return None
+
+    @staticmethod
+    async def _search_via_search_engine(keyword: str, poetry_type: str) -> Optional[str]:
+        """通过搜索引擎结果页提取诗句内容作为最终兜底"""
+        query_type = {
+            "classic": "古诗词",
+            "modern": "现代诗",
+            "foreign": "英文诗 译文",
+            "all": "诗歌",
+        }.get(poetry_type, "诗歌")
+        query = quote_plus(f"{keyword} {query_type} 原文")
+
+        timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        }
+
+        try:
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+                request_timeout = max(3, API_TIMEOUT // 2)
+                for template in SEARCH_ENGINE_URLS:
+                    url = template.format(query=query)
+                    try:
+                        async with session.get(url, timeout=request_timeout) as response:
+                            if response.status != 200:
+                                continue
+                            html_text = await response.text(errors="ignore")
+                    except Exception:
+                        continue
+
+                    extracted = PoetryAPI._extract_poetry_from_search_html(html_text, keyword, poetry_type)
+                    if not extracted:
+                        continue
+
+                    return format_poetry(extracted, PoetryAPI._normalize_poetry_type(poetry_type))
+        except Exception as e:
+            LOG.warning(f"搜索引擎兜底失败: {e}")
+
+        return None
+
+    @staticmethod
+    def _extract_poetry_from_search_html(html_text: str, keyword: str, poetry_type: str) -> Optional[str]:
+        if not html_text:
+            return None
+
+        text = re.sub(r"(?is)<script[^>]*>.*?</script>", " ", html_text)
+        text = re.sub(r"(?is)<style[^>]*>.*?</style>", " ", text)
+        text = re.sub(r"(?is)<[^>]+>", "\n", text)
+        text = unescape(text)
+
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if not lines:
+            return None
+
+        blacklist_tokens = [
+            "www.",
+            "http",
+            "cookie",
+            "privacy",
+            "登录",
+            "注册",
+            "下一页",
+            "上一页",
+            "搜索",
+            "百度",
+            "bing",
+            "duckduckgo",
+            "知乎",
+            "zhihu",
+            "课文",
+            "教材",
+            "下载",
+            "视频",
+            "广告",
+            "百科",
+        ]
+
+        candidates = []
+        for line in lines:
+            lowered = line.lower()
+            if any(token in lowered for token in blacklist_tokens):
+                continue
+            if len(line) < 8 or len(line) > 120:
+                continue
+            if re.fullmatch(r"[a-z0-9.-]+\.(com|cn|org|net)", lowered):
+                continue
+            if re.search(r"(19|20)\d{2}\s*年", line):
+                continue
+            if "·" in line and re.search(r"\d", line):
+                continue
+            if " - " in line or "—" in line:
+                continue
+            if re.search(r"第\s*[一二三四五六七八九十0-9]+\s*课", line):
+                continue
+            if any(flag in line for flag in ["讨论话题", "如何理解", "是什么", "为什么", "怎么办", "怎么理解"]):
+                continue
+            if not re.search(r"[\u4e00-\u9fffA-Za-z]{4,}", line):
+                continue
+            if poetry_type in {"classic", "modern", "all"} and not re.search(r"[\u4e00-\u9fff]{2,}", line):
+                continue
+            if re.search(r"[，。！？；：,.!?;:]", line):
+                candidates.append(line)
+
+        if not candidates:
+            return None
+
+        keyword_matches = [line for line in candidates if PoetryAPI._contains_keyword(line, keyword)]
+        if not keyword_matches:
+            return None
+        picked = keyword_matches[:4]
+        if len(picked) < 2 and len(candidates) >= 2:
+            picked = (keyword_matches + [line for line in candidates if line not in keyword_matches])[:2]
+        if len(picked) < 2:
+            return None
+        return "\n".join(picked)
+
+    @staticmethod
+    def _normalize_poetry_type(poetry_type: str) -> str:
+        return poetry_type if poetry_type in {"classic", "modern", "foreign"} else "classic"
+
+    @staticmethod
+    def _contains_keyword(content: str, keyword: str) -> bool:
+        if not content or not keyword:
+            return False
+        return keyword.casefold() in content.casefold()
 
     @staticmethod
     async def _fetch_poetry_candidates() -> List[Dict]:

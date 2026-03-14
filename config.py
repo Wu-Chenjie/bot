@@ -25,8 +25,10 @@ RETRY_TIMES = 2                 # API重试次数
 # 命令配置
 COMMAND_ALIASES = {
     "poetry": ["诗词", "诗歌"],
+    "help": ["帮助", "菜单", "指令"],
     "poetry_schedule": ["诗词定时"],
     "poetry_type": ["诗词类型"],
     "poetry_status": ["诗词状态"],
-    "poetry_filter": ["诗词筛选", "诗歌筛选", "诗词定制"]
+    "poetry_filter": ["诗词筛选", "诗歌筛选", "诗词定制"],
+    "poetry_search": ["诗词搜索", "诗歌搜索", "搜诗"]
 }

@@ -40,6 +40,23 @@ class PoetryPlugin(NcatBotPlugin):
             await event.reply(MessageChain([Text("获取诗歌失败，请稍后重试~")]))
             return
         await event.reply(MessageChain([Text(poetry_text)]))
+
+    @command_registry.command("help", aliases=COMMAND_ALIASES["help"], description="查看诗歌插件帮助")
+    async def help_cmd(self, event: BaseMessageEvent):
+        """输出插件可用命令帮助"""
+        help_text = (
+            "📘 诗歌插件命令帮助\n"
+            "- /help：查看本帮助\n"
+            "- /poetry：随机诗歌\n"
+            "- /poetry_type <type>：按类型获取（古诗词/现代诗/双语外国诗）\n"
+            "- /poetry_filter <style> <content> <poet>：按条件筛选\n"
+            "- /poetry_search <keyword> [type]：关键词搜索（本地→联网）\n"
+            "\n"
+            "示例：\n"
+            "/poetry_search 李白 古诗词\n"
+            "/poetry_search moon 双语外国诗"
+        )
+        await event.reply(MessageChain([Text(help_text)]))
     
     @command_registry.command("poetry_type", aliases=COMMAND_ALIASES["poetry_type"], description="指定类型获取诗歌（古诗词/现代诗/双语外国诗）")
     @param(name="type", default="古诗词", help="诗歌类型：古诗词/现代诗/双语外国诗")
@@ -79,6 +96,43 @@ class PoetryPlugin(NcatBotPlugin):
         if not poetry_text:
             tip = "未筛选到匹配诗词，可尝试放宽条件。例如：/poetry_filter 婉约派 不限 李清照"
             await event.reply(MessageChain([Text(tip)]))
+            return
+        await event.reply(MessageChain([Text(poetry_text)]))
+
+    @command_registry.command("poetry_search", aliases=COMMAND_ALIASES["poetry_search"], description="关键词检索诗歌（未命中本地时自动联网搜索）")
+    @param(name="keyword", help="检索关键词，如：月、李白、乡愁")
+    @param(name="type", default="不限", help="类型：古诗词/现代诗/双语外国诗/不限")
+    async def poetry_search_cmd(self, event: BaseMessageEvent, keyword: str, type: str = "不限"):
+        """关键词检索诗歌，本地未命中时自动联网搜索"""
+        normalized_keyword = (keyword or "").strip()
+        if not normalized_keyword:
+            await event.reply(MessageChain([Text("请提供检索关键词，例如：/poetry_search 月 现代诗")] ))
+            return
+
+        type_mapping = {
+            "不限": "all",
+            "全部": "all",
+            "all": "all",
+            "古诗词": "classic",
+            "古诗": "classic",
+            "classic": "classic",
+            "现代诗": "modern",
+            "现代": "modern",
+            "modern": "modern",
+            "双语外国诗": "foreign",
+            "双语": "foreign",
+            "中英": "foreign",
+            "外国诗": "foreign",
+            "foreign": "foreign",
+        }
+        normalized_type = type_mapping.get((type or "").strip())
+        if not normalized_type:
+            await event.reply(MessageChain([Text("类型错误！支持：不限 / 古诗词 / 现代诗 / 双语外国诗")]))
+            return
+
+        poetry_text = await PoetryAPI.search_poetry(normalized_keyword, normalized_type)
+        if not poetry_text:
+            await event.reply(MessageChain([Text("未检索到匹配诗歌（已尝试联网搜索），可更换关键词重试~")]))
             return
         await event.reply(MessageChain([Text(poetry_text)]))
     
