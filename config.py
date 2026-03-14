@@ -26,5 +26,6 @@ COMMAND_ALIASES = {
     "poetry": ["诗词", "诗歌"],
     "poetry_schedule": ["诗词定时"],
     "poetry_type": ["诗词类型"],
-    "poetry_status": ["诗词状态"]
+    "poetry_status": ["诗词状态"],
+    "poetry_filter": ["诗词筛选", "诗歌筛选", "诗词定制"]
 }
