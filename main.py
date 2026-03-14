@@ -12,7 +12,7 @@ LOG = get_log("PoetryPlugin")
 
 class PoetryPlugin(NcatBotPlugin):
     name = "PoetryPlugin"
-    version = "1.0.0"
+    version = "1.3.1"
     author = "Developer"
     description = "自动/手动发送古诗词/现代诗的插件，支持定时发送"
     
