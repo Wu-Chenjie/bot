@@ -2,11 +2,12 @@ from ncatbot.plugin_system import NcatBotPlugin
 from ncatbot.plugin_system import command_registry
 from ncatbot.plugin_system import admin_filter
 from ncatbot.plugin_system import param
-from ncatbot.core import BaseMessageEvent, GroupMessageEvent, MessageChain, Text
+from ncatbot.core import BaseMessageEvent, GroupMessageEvent
 from ncatbot.utils import get_log
 from .config import COMMAND_ALIASES
 from .poetry_api import PoetryAPI
 from .schedule_manager import ScheduleManager
+from .utils import normalize_poetry_type, reply_text
 
 LOG = get_log("PoetryPlugin")
 
@@ -37,9 +38,9 @@ class PoetryPlugin(NcatBotPlugin):
         """获取随机诗歌"""
         poetry_text = await PoetryAPI.get_random_poetry()
         if not poetry_text:
-            await event.reply(MessageChain([Text("获取诗歌失败，请稍后重试~")]))
+            await reply_text(event, "获取诗歌失败，请稍后重试~")
             return
-        await event.reply(MessageChain([Text(poetry_text)]))
+        await reply_text(event, poetry_text)
 
     @command_registry.command("help", aliases=COMMAND_ALIASES["help"], description="查看诗歌插件帮助")
     async def help_cmd(self, event: BaseMessageEvent):
@@ -56,35 +57,22 @@ class PoetryPlugin(NcatBotPlugin):
             "/poetry_search 李白 古诗词\n"
             "/poetry_search moon 双语外国诗"
         )
-        await event.reply(MessageChain([Text(help_text)]))
+        await reply_text(event, help_text)
     
     @command_registry.command("poetry_type", aliases=COMMAND_ALIASES["poetry_type"], description="指定类型获取诗歌（古诗词/现代诗/双语外国诗）")
     @param(name="type", default="古诗词", help="诗歌类型：古诗词/现代诗/双语外国诗")
     async def poetry_type_cmd(self, event: BaseMessageEvent, type: str = "古诗词"):
         """指定类型获取诗歌"""
-        type_mapping = {
-            "古诗词": "classic",
-            "古诗": "classic",
-            "classic": "classic",
-            "现代诗": "modern",
-            "现代": "modern",
-            "modern": "modern",
-            "双语外国诗": "foreign",
-            "双语": "foreign",
-            "中英": "foreign",
-            "外国诗": "foreign",
-            "foreign": "foreign",
-        }
-        normalized_type = type_mapping.get((type or "").strip())
+        normalized_type = normalize_poetry_type(type)
         if not normalized_type:
-            await event.reply(MessageChain([Text("类型错误！支持：古诗词 / 现代诗 / 双语外国诗")]))
+            await reply_text(event, "类型错误！支持：古诗词 / 现代诗 / 双语外国诗")
             return
         
         poetry_text = await PoetryAPI.get_poetry_by_type(normalized_type)
         if not poetry_text:
-            await event.reply(MessageChain([Text(f"获取{type}类型诗歌失败，请稍后重试~")]))
+            await reply_text(event, f"获取{type}类型诗歌失败，请稍后重试~")
             return
-        await event.reply(MessageChain([Text(poetry_text)]))
+        await reply_text(event, poetry_text)
 
     @command_registry.command("poetry_filter", aliases=COMMAND_ALIASES["poetry_filter"], description="按风格/内容/诗人筛选诗词（中文输入）")
     @param(name="style", default="不限", help="风格：婉约派/豪放派/不限")
@@ -95,9 +83,9 @@ class PoetryPlugin(NcatBotPlugin):
         poetry_text = await PoetryAPI.get_filtered_poetry(style=style, content=content, poet=poet)
         if not poetry_text:
             tip = "未筛选到匹配诗词，可尝试放宽条件。例如：/poetry_filter 婉约派 不限 李清照"
-            await event.reply(MessageChain([Text(tip)]))
+            await reply_text(event, tip)
             return
-        await event.reply(MessageChain([Text(poetry_text)]))
+        await reply_text(event, poetry_text)
 
     @command_registry.command("poetry_search", aliases=COMMAND_ALIASES["poetry_search"], description="关键词检索诗歌（未命中本地时自动联网搜索）")
     @param(name="keyword", help="检索关键词，如：月、李白、乡愁")
@@ -106,35 +94,19 @@ class PoetryPlugin(NcatBotPlugin):
         """关键词检索诗歌，本地未命中时自动联网搜索"""
         normalized_keyword = (keyword or "").strip()
         if not normalized_keyword:
-            await event.reply(MessageChain([Text("请提供检索关键词，例如：/poetry_search 月 现代诗")] ))
+            await reply_text(event, "请提供检索关键词，例如：/poetry_search 月 现代诗")
             return
 
-        type_mapping = {
-            "不限": "all",
-            "全部": "all",
-            "all": "all",
-            "古诗词": "classic",
-            "古诗": "classic",
-            "classic": "classic",
-            "现代诗": "modern",
-            "现代": "modern",
-            "modern": "modern",
-            "双语外国诗": "foreign",
-            "双语": "foreign",
-            "中英": "foreign",
-            "外国诗": "foreign",
-            "foreign": "foreign",
-        }
-        normalized_type = type_mapping.get((type or "").strip())
+        normalized_type = normalize_poetry_type(type, default="all")
         if not normalized_type:
-            await event.reply(MessageChain([Text("类型错误！支持：不限 / 古诗词 / 现代诗 / 双语外国诗")]))
+            await reply_text(event, "类型错误！支持：不限 / 古诗词 / 现代诗 / 双语外国诗")
             return
 
         poetry_text = await PoetryAPI.search_poetry(normalized_keyword, normalized_type)
         if not poetry_text:
-            await event.reply(MessageChain([Text("未检索到匹配诗歌（已尝试联网搜索），可更换关键词重试~")]))
+            await reply_text(event, "未检索到匹配诗歌（已尝试联网搜索），可更换关键词重试~")
             return
-        await event.reply(MessageChain([Text(poetry_text)]))
+        await reply_text(event, poetry_text)
     
     # ========== 管理员命令 ==========
     @admin_filter
@@ -145,7 +117,7 @@ class PoetryPlugin(NcatBotPlugin):
         """配置定时发送群聊"""
         # 仅群聊管理员可操作
         if not isinstance(event, GroupMessageEvent):
-            await event.reply(MessageChain([Text("该命令仅支持群聊使用~")]))
+            await reply_text(event, "该命令仅支持群聊使用~")
             return
 
         action = (action or "").strip().lower()
@@ -157,7 +129,7 @@ class PoetryPlugin(NcatBotPlugin):
             try:
                 target_group = int(group_id)
             except (TypeError, ValueError):
-                await event.reply(MessageChain([Text("群聊ID格式错误，请输入纯数字群号~")]))
+                await reply_text(event, "群聊ID格式错误，请输入纯数字群号~")
                 return
         
         if action == "add":
@@ -169,7 +141,7 @@ class PoetryPlugin(NcatBotPlugin):
         else:
             msg = "用法错误！示例：\n/poetry_schedule add 123456789\n/poetry_schedule remove 123456789"
         
-        await event.reply(MessageChain([Text(msg)]))
+        await reply_text(event, msg)
     
     @admin_filter
     @command_registry.command("poetry_status", aliases=COMMAND_ALIASES["poetry_status"], description="查看诗歌插件状态")
@@ -188,7 +160,7 @@ class PoetryPlugin(NcatBotPlugin):
         api_status = await self._check_api_status()
         status_text += f"API接口状态: {api_status}"
         
-        await event.reply(MessageChain([Text(status_text)]))
+        await reply_text(event, status_text)
     
     async def _check_api_status(self) -> str:
         """检查API可用性"""

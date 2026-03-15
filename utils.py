@@ -1,5 +1,8 @@
 from ncatbot.utils import get_log
+from ncatbot.core import MessageChain, Text
 from datetime import time
+
+from .config import POETRY_TYPE_ALIASES
 
 LOG = get_log("PoetryPlugin-Utils")
 
@@ -28,3 +31,16 @@ def parse_schedule_time(time_config: dict) -> time:
 def validate_group_id(group_id: int) -> bool:
     """验证群聊ID合法性"""
     return isinstance(group_id, int) and group_id > 0
+
+
+def normalize_poetry_type(value: str, default: str = "classic") -> str | None:
+    """标准化诗歌类型输入。"""
+    normalized = (value or "").strip()
+    if not normalized:
+        return default
+    return POETRY_TYPE_ALIASES.get(normalized)
+
+
+async def reply_text(event, text: str) -> None:
+    """统一文本回复构造。"""
+    await event.reply(MessageChain([Text(text)]))

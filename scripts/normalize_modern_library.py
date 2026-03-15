@@ -10,6 +10,7 @@ NOISE = {
     "中国诗歌库", "中华诗库", "中国诗典", "中国诗人", "中国诗坛", "首页",
     "上一首", "下一首", "返回", "目录"
 }
+NOISE_LINE_RE = re.compile(r"^(中国诗歌库|中华诗库|中国诗典|中国诗人|中国诗坛|首页)$")
 
 
 def clean_line(text: str) -> str:
@@ -38,7 +39,7 @@ def parse_item(item: str):
     if author.endswith("诗集") and len(author) <= 20:
         author = author.replace("诗集", "").strip("《》 ") or "未知作者"
 
-    content = [x for x in content if x not in NOISE and not re.search(r"^(中国诗歌库|中华诗库|中国诗典|中国诗人|中国诗坛|首页)$", x)]
+    content = [x for x in content if x not in NOISE and not NOISE_LINE_RE.search(x)]
     if len(content) < 2:
         return None
 
@@ -62,13 +63,20 @@ def load_git_head_items() -> list[str]:
     return []
 
 
-def main():
-    current = []
-    if FILE.exists():
+def load_local_items() -> list[str]:
+    if not FILE.exists():
+        return []
+    try:
         data = json.loads(FILE.read_text(encoding="utf-8"))
-        if isinstance(data, list):
-            current = [x for x in data if isinstance(x, str)]
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    return [x for x in data if isinstance(x, str)]
 
+
+def main():
+    current = load_local_items()
     base = load_git_head_items()
 
     merged = []

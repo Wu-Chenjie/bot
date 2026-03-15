@@ -15,11 +15,7 @@ class ScheduleManager:
     
     def __init__(self):
         self.schedule_times: List[time] = [parse_schedule_time(t) for t in DEFAULT_SCHEDULE_TIMES]
-        self.schedule_groups: Set[int] = {
-            int(group_id)
-            for group_id in DEFAULT_SCHEDULE_GROUPS
-            if isinstance(group_id, int) and validate_group_id(group_id)
-        }
+        self.schedule_groups: Set[int] = self._normalize_group_ids(DEFAULT_SCHEDULE_GROUPS)
         self.bot = None  # 由插件注入
         
         # 数据持久化路径
@@ -37,15 +33,7 @@ class ScheduleManager:
                 with open(self.data_file, "r", encoding="utf-8") as f:
                     groups = json.load(f)
                     if isinstance(groups, list):
-                        valid_groups = set()
-                        for group_id in groups:
-                            try:
-                                normalized_group_id = int(group_id)
-                            except (TypeError, ValueError):
-                                continue
-                            if validate_group_id(normalized_group_id):
-                                valid_groups.add(normalized_group_id)
-                        self.schedule_groups.update(valid_groups)
+                        self.schedule_groups.update(self._normalize_group_ids(groups))
             except Exception as e:
                 LOG.error(f"加载群聊配置失败: {e}")
 
@@ -54,9 +42,21 @@ class ScheduleManager:
         try:
             os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
             with open(self.data_file, "w", encoding="utf-8") as f:
-                json.dump(list(self.schedule_groups), f)
+                json.dump(sorted(self.schedule_groups), f, ensure_ascii=False)
         except Exception as e:
             LOG.error(f"保存群聊配置失败: {e}")
+
+    @staticmethod
+    def _normalize_group_ids(group_ids) -> Set[int]:
+        normalized: Set[int] = set()
+        for group_id in group_ids:
+            try:
+                candidate = int(group_id)
+            except (TypeError, ValueError):
+                continue
+            if validate_group_id(candidate):
+                normalized.add(candidate)
+        return normalized
     
     def add_schedule_group(self, group_id: int) -> bool:
         """添加定时发送群聊"""

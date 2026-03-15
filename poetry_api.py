@@ -12,10 +12,11 @@ import aiohttp
 import random
 import json
 import re
+import time
 from html import unescape
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, quote_from_bytes
 
 LOG = get_log("PoetryPlugin-API")
 
@@ -32,6 +33,19 @@ SEARCH_ENGINE_URLS = [
     "https://duckduckgo.com/html/?q={query}",
     "https://www.bing.com/search?q={query}",
 ]
+
+XDSHI_BASE_URL = "https://www.xdshi.com"
+XDSHI_MODERN_INDEX_URL = f"{XDSHI_BASE_URL}/shige/xiandaishi/"
+XDSHI_MODERN_PAGE_URL_TEMPLATE = f"{XDSHI_BASE_URL}/shige/xiandaishi/list_2_{{page}}.html"
+XDSHI_SEARCH_URL_TEMPLATES = [
+    f"{XDSHI_BASE_URL}/plus/search.php?keyword={{keyword}}&searchtype=titlekeyword",
+    f"{XDSHI_BASE_URL}/plus/search.php?keyword={{keyword}}&searchtype=titlekeyword&kwtype=0&pagesize=10",
+    f"{XDSHI_BASE_URL}/plus/search.php?keyword={{keyword}}",
+]
+
+HTTP_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+}
 
 POETRY_LIBRARY_DIR = Path(__file__).resolve().parent / "data" / "poetry_library"
 CLASSIC_LIBRARY_FILE = POETRY_LIBRARY_DIR / "classic_poems.json"
@@ -179,6 +193,10 @@ class PoetryAPI:
         "返回",
         "目录",
     }
+
+    _XDSHI_LINK_CACHE: List[str] = []
+    _XDSHI_LINK_CACHE_AT: float = 0.0
+    _XDSHI_LINK_CACHE_TTL_SECONDS = 600
 
     @staticmethod
     def _load_external_libraries() -> None:
@@ -366,7 +384,7 @@ class PoetryAPI:
             api_url = candidate_urls[attempt % len(candidate_urls)]
             try:
                 poetry_text = await PoetryAPI._request_api(api_url)
-                if poetry_text:
+                if poetry_text and PoetryAPI._is_sufficient_poetry(poetry_text):
                     return poetry_text
                 if poetry_text:
                     fallback_text = fallback_text or poetry_text
@@ -383,7 +401,7 @@ class PoetryAPI:
 
         local_candidates = [
             PoetryAPI._get_local_classic_poetry(),
-            format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern"),
+            format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern") if PoetryAPI.LOCAL_MODERN_POEMS else None,
             PoetryAPI._get_local_foreign_poetry(),
         ]
         available = [item for item in local_candidates if item]
@@ -392,40 +410,37 @@ class PoetryAPI:
     @staticmethod
     async def get_poetry_by_type(poetry_type: str) -> Optional[str]:
         """按类型获取诗歌"""
-        if poetry_type == "classic":
-            poetry_text = await PoetryAPI._request_api(CLASSIC_POETRY_API)
-            if poetry_text:
-                return poetry_text
-
-            search_engine_result = await PoetryAPI._search_via_search_engine("古诗词", "classic")
-            if search_engine_result:
-                return search_engine_result
-
-            return PoetryAPI._get_local_classic_poetry()
-        elif poetry_type == "modern":
-            for api_url in MODERN_POETRY_FALLBACK_APIS:
-                poetry_text = await PoetryAPI._request_api(api_url)
-                if poetry_text:
-                    return poetry_text
-
-            search_engine_result = await PoetryAPI._search_via_search_engine("现代诗", "modern")
-            if search_engine_result:
-                return search_engine_result
-
-            return format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern")
-        elif poetry_type == "foreign":
-            for api_url in FOREIGN_POETRY_FALLBACK_APIS:
-                poetry_text = await PoetryAPI._request_api(api_url)
-                if poetry_text:
-                    return poetry_text
-
-            search_engine_result = await PoetryAPI._search_via_search_engine("英文诗", "foreign")
-            if search_engine_result:
-                return search_engine_result
-
-            return PoetryAPI._get_local_foreign_poetry()
-        else:
+        if poetry_type not in {"classic", "modern", "foreign"}:
             return None
+
+        api_urls = {
+            "classic": [CLASSIC_POETRY_API],
+            "modern": MODERN_POETRY_FALLBACK_APIS,
+            "foreign": FOREIGN_POETRY_FALLBACK_APIS,
+        }[poetry_type]
+
+        timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
+        async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
+            for api_url in api_urls:
+                poetry_text = await PoetryAPI._request_api_with_session(session, api_url)
+                if poetry_text:
+                    return poetry_text
+
+            if poetry_type == "modern":
+                xdshi_poetry = await PoetryAPI._fetch_xdshi_modern_poetry(session)
+                if xdshi_poetry:
+                    return xdshi_poetry
+
+        keyword = {"classic": "古诗词", "modern": "现代诗", "foreign": "英文诗"}[poetry_type]
+        search_engine_result = await PoetryAPI._search_via_search_engine(keyword, poetry_type)
+        if search_engine_result:
+            return search_engine_result
+
+        if poetry_type == "classic":
+            return PoetryAPI._get_local_classic_poetry()
+        if poetry_type == "modern":
+            return format_poetry(random.choice(PoetryAPI.LOCAL_MODERN_POEMS), "modern") if PoetryAPI.LOCAL_MODERN_POEMS else None
+        return PoetryAPI._get_local_foreign_poetry()
 
     @staticmethod
     def _get_local_classic_poetry() -> Optional[str]:
@@ -439,6 +454,10 @@ class PoetryAPI:
         return format_poetry(f"{title}\n{author}\n{poem_content}", "classic")
 
     @staticmethod
+    def _build_foreign_poetry_text(title: str, author: str, translator: str, english: str, chinese: str) -> str:
+        return f"{title}\n作者：{author}\n译者：{translator}\n\n英文：\n{english}\n\n中文：\n{chinese}"
+
+    @staticmethod
     def _get_local_foreign_poetry() -> Optional[str]:
         if not PoetryAPI.LOCAL_FOREIGN_POEMS:
             return None
@@ -449,7 +468,7 @@ class PoetryAPI:
         translator = str(selected.get("translator", "未知")).strip() or "未知"
         english = str(selected.get("english", "（无）")).strip() or "（无）"
         chinese = str(selected.get("chinese", "（无）")).strip() or "（无）"
-        block = f"{title}\n作者：{author}\n译者：{translator}\n\n英文：\n{english}\n\n中文：\n{chinese}"
+        block = PoetryAPI._build_foreign_poetry_text(title, author, translator, english, chinese)
         return format_poetry(block, "foreign")
 
     @staticmethod
@@ -541,7 +560,7 @@ class PoetryAPI:
                 searchable = f"{title}\n{author}\n{translator}\n{english}\n{chinese}"
                 if not PoetryAPI._contains_keyword(searchable, keyword):
                     continue
-                block = f"{title}\n作者：{author}\n译者：{translator}\n\n英文：\n{english}\n\n中文：\n{chinese}"
+                block = PoetryAPI._build_foreign_poetry_text(title, author, translator, english, chinese)
                 foreign_matches.append(format_poetry(block, "foreign"))
 
             if foreign_matches:
@@ -589,44 +608,51 @@ class PoetryAPI:
         if classic_matches:
             return random.choice(classic_matches)
 
-        for _ in range(max(RETRY_TIMES, 2)):
-            poetry_text = await PoetryAPI._request_api(CLASSIC_POETRY_API)
-            if not poetry_text:
-                continue
-            if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
-                return poetry_text
+        timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
+        async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
+            for _ in range(max(RETRY_TIMES, 2)):
+                poetry_text = await PoetryAPI._request_api_with_session(session, CLASSIC_POETRY_API)
+                if not poetry_text:
+                    continue
+                if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
+                    return poetry_text
 
         return None
 
     @staticmethod
     async def _search_online_modern_poetry(keyword: str) -> Optional[str]:
-        if not MODERN_POETRY_FALLBACK_APIS:
-            return None
-
-        max_attempts = max(8, len(MODERN_POETRY_FALLBACK_APIS) * 2)
-        for attempt in range(max_attempts):
-            api_url = MODERN_POETRY_FALLBACK_APIS[attempt % len(MODERN_POETRY_FALLBACK_APIS)]
-            poetry_text = await PoetryAPI._request_api(api_url)
-            if not poetry_text:
-                continue
-            if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
-                return poetry_text
-
-        return None
+        api_result = await PoetryAPI._search_online_in_api_pool(
+            keyword=keyword,
+            api_urls=MODERN_POETRY_FALLBACK_APIS,
+        )
+        if api_result:
+            return api_result
+        timeout = aiohttp.ClientTimeout(total=max(API_TIMEOUT, 12))
+        async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
+            return await PoetryAPI._fetch_xdshi_modern_poetry(session, keyword)
 
     @staticmethod
     async def _search_online_foreign_poetry(keyword: str) -> Optional[str]:
-        if not FOREIGN_POETRY_FALLBACK_APIS:
+        return await PoetryAPI._search_online_in_api_pool(
+            keyword=keyword,
+            api_urls=FOREIGN_POETRY_FALLBACK_APIS,
+        )
+
+    @staticmethod
+    async def _search_online_in_api_pool(keyword: str, api_urls: List[str]) -> Optional[str]:
+        if not api_urls:
             return None
 
-        max_attempts = max(8, len(FOREIGN_POETRY_FALLBACK_APIS) * 2)
-        for attempt in range(max_attempts):
-            api_url = FOREIGN_POETRY_FALLBACK_APIS[attempt % len(FOREIGN_POETRY_FALLBACK_APIS)]
-            poetry_text = await PoetryAPI._request_api(api_url)
-            if not poetry_text:
-                continue
-            if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
-                return poetry_text
+        max_attempts = max(8, len(api_urls) * 2)
+        timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
+        async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
+            for attempt in range(max_attempts):
+                api_url = api_urls[attempt % len(api_urls)]
+                poetry_text = await PoetryAPI._request_api_with_session(session, api_url)
+                if not poetry_text:
+                    continue
+                if PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poetry_text), keyword):
+                    return poetry_text
 
         return None
 
@@ -642,12 +668,9 @@ class PoetryAPI:
         query = quote_plus(f"{keyword} {query_type} 原文")
 
         timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-        }
 
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+            async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
                 request_timeout = max(3, API_TIMEOUT // 2)
                 for template in SEARCH_ENGINE_URLS:
                     url = template.format(query=query)
@@ -759,9 +782,6 @@ class PoetryAPI:
     async def _fetch_poetry_candidates() -> List[Dict]:
         """获取可筛选的诗词候选列表"""
         timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
 
         def parse_items(payload: Dict) -> List[Dict]:
             if not isinstance(payload, dict):
@@ -774,20 +794,23 @@ class PoetryAPI:
             return []
 
         async def load_payload(session: aiohttp.ClientSession, url: str) -> Optional[Dict]:
-            async with session.get(url) as response:
-                if response.status != 200:
-                    return None
-                try:
-                    return await response.json(content_type=None)
-                except Exception:
-                    text = await response.text()
-                    try:
-                        return json.loads(text)
-                    except Exception:
+            try:
+                async with session.get(url) as response:
+                    if response.status != 200:
                         return None
+                    try:
+                        return await response.json(content_type=None)
+                    except Exception:
+                        text = await response.text()
+                        try:
+                            return json.loads(text)
+                        except Exception:
+                            return None
+            except Exception:
+                return None
 
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+            async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
                 # 优先尝试批量拉取
                 bulk_payload = await load_payload(session, "https://api.apiopen.top/getPoetry?page=1&count=20")
                 bulk_items = parse_items(bulk_payload or {})
@@ -858,32 +881,361 @@ class PoetryAPI:
         """核心API请求逻辑"""
         try:
             timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                async with session.get(api_url) as response:
-                    if response.status != 200:
-                        LOG.warning(f"API状态码错误 {api_url}: {response.status}")
-                        return None
-                    
-                    # 处理不同返回格式
-                    if api_url.endswith(".txt"):
-                        text = await response.text(encoding="utf-8")
-                        if not text.strip():
-                            return None
-                        return format_poetry(text, "classic")
-                    else:
-                        try:
-                            data = await response.json()
-                            return PoetryAPI._parse_json_poetry(data, api_url)
-                        except Exception:
-                            # 某些API虽然不是.txt结尾，但可能返回纯文本，尝试作为文本解析
-                            text = await response.text()
-                            return PoetryAPI._parse_plain_text_poetry(text, api_url)
+            async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
+                return await PoetryAPI._request_api_with_session(session, api_url)
         except Exception as e:
             LOG.error(f"API请求异常 {api_url}: {e}")
             return None
+
+    @staticmethod
+    async def _request_api_with_session(session: aiohttp.ClientSession, api_url: str) -> Optional[str]:
+        try:
+            async with session.get(api_url) as response:
+                if response.status != 200:
+                    LOG.warning(f"API状态码错误 {api_url}: {response.status}")
+                    return None
+
+                if api_url.endswith(".txt"):
+                    text = await response.text(encoding="utf-8")
+                    if not text.strip():
+                        return None
+                    return format_poetry(text, "classic")
+
+                try:
+                    data = await response.json(content_type=None)
+                    return PoetryAPI._parse_json_poetry(data, api_url)
+                except Exception:
+                    text = await response.text()
+                    return PoetryAPI._parse_plain_text_poetry(text, api_url)
+        except Exception as e:
+            LOG.warning(f"API请求失败 {api_url}: {e}")
+            return None
+
+    @staticmethod
+    async def _fetch_xdshi_modern_poetry(
+        session: aiohttp.ClientSession,
+        keyword: str = "",
+    ) -> Optional[str]:
+        if keyword:
+            search_links = await PoetryAPI._search_xdshi_links_by_keyword(session, keyword)
+            list_links = await PoetryAPI._get_xdshi_modern_links(session)
+            merged = []
+            seen = set()
+            for url in search_links + list_links:
+                if url in seen:
+                    continue
+                seen.add(url)
+                merged.append(url)
+            links = merged
+        else:
+            links = await PoetryAPI._get_xdshi_modern_links(session)
+        if not links:
+            return None
+
+        if keyword:
+            search_set = set(search_links)
+            priority = [url for url in links if url in search_set]
+            fallback = [url for url in links if url not in search_set]
+            random.shuffle(fallback)
+            candidates = priority + fallback
+        else:
+            candidates = links[:]
+            random.shuffle(candidates)
+        for article_url in candidates[:12]:
+            poem_text = await PoetryAPI._fetch_xdshi_article_poem(session, article_url)
+            if not poem_text:
+                continue
+            if keyword and not PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poem_text), keyword):
+                continue
+            return poem_text
+        return None
+
+    @staticmethod
+    async def _get_xdshi_modern_links(session: aiohttp.ClientSession) -> List[str]:
+        now = time.monotonic()
+        if (
+            PoetryAPI._XDSHI_LINK_CACHE
+            and now - PoetryAPI._XDSHI_LINK_CACHE_AT < PoetryAPI._XDSHI_LINK_CACHE_TTL_SECONDS
+        ):
+            return PoetryAPI._XDSHI_LINK_CACHE[:]
+
+        page_urls = [XDSHI_MODERN_INDEX_URL] + [XDSHI_MODERN_PAGE_URL_TEMPLATE.format(page=page) for page in range(2, 5)]
+        found_links: List[str] = []
+        seen = set()
+
+        for page_url in page_urls:
+            try:
+                async with session.get(page_url) as response:
+                    if response.status != 200:
+                        continue
+                    html = await response.text(errors="ignore")
+            except Exception:
+                continue
+
+            for full_url in PoetryAPI._extract_xdshi_article_links(html):
+                if full_url in seen:
+                    continue
+                seen.add(full_url)
+                found_links.append(full_url)
+
+        PoetryAPI._XDSHI_LINK_CACHE = found_links
+        PoetryAPI._XDSHI_LINK_CACHE_AT = now
+        return found_links
+
+    @staticmethod
+    async def _search_xdshi_links_by_keyword(session: aiohttp.ClientSession, keyword: str) -> List[str]:
+        variants = PoetryAPI._build_keyword_variants(keyword)
+        found: List[str] = []
+        seen = set()
+
+        for variant in variants[:3]:
+            encoded_variants = PoetryAPI._encode_xdshi_keyword_variants(variant)
+            if not encoded_variants:
+                continue
+            for template in XDSHI_SEARCH_URL_TEMPLATES:
+                for encoded in encoded_variants:
+                    url = template.format(keyword=encoded)
+                    try:
+                        async with session.get(url) as response:
+                            if response.status != 200:
+                                continue
+                            html = await PoetryAPI._read_response_text(response)
+                    except Exception:
+                        continue
+
+                    current_links = PoetryAPI._extract_xdshi_article_links(html)
+                    if not current_links:
+                        continue
+
+                    page_added = 0
+                    for link in current_links:
+                        if link in seen:
+                            continue
+                        seen.add(link)
+                        found.append(link)
+                        page_added += 1
+
+                    if page_added > 0:
+                        return found
+
+            if len(found) >= 20:
+                break
+
+        return found
+
+    @staticmethod
+    def _build_keyword_variants(keyword: str) -> List[str]:
+        normalized = (keyword or "").strip()
+        if not normalized:
+            return []
+
+        variants = [normalized]
+        compact = re.sub(r"\s+", "", normalized)
+        if compact and compact not in variants:
+            variants.append(compact)
+
+        for token in re.split(r"[\s,，、;；]+", normalized):
+            token = token.strip()
+            if len(token) >= 2 and token not in variants:
+                variants.append(token)
+
+        return variants
+
+    @staticmethod
+    def _extract_xdshi_article_links(html: str) -> List[str]:
+        links: List[str] = []
+        seen = set()
+
+        href_candidates = []
+        href_candidates.extend(re.findall(r'href\s*=\s*"([^"]+)"', html or "", flags=re.I))
+        href_candidates.extend(re.findall(r"href\s*=\s*'([^']+)'", html or "", flags=re.I))
+
+        for href in href_candidates:
+            if not href:
+                continue
+            if href.startswith("/"):
+                full_url = f"{XDSHI_BASE_URL}{href}"
+            elif href.startswith("view.php?aid="):
+                full_url = f"{XDSHI_BASE_URL}/plus/{href}"
+            elif href.startswith("http"):
+                full_url = href
+            else:
+                full_url = f"{XDSHI_BASE_URL}/{href.lstrip('/')}"
+
+            if not (
+                re.search(r"/news/(?:[a-z]+/)?\d{4}/\d+\.html$", full_url, flags=re.I)
+                or re.search(r"/plus/view\.php\?aid=\d+", full_url, flags=re.I)
+                or re.search(r"/m/view\.php\?aid=\d+", full_url, flags=re.I)
+            ):
+                continue
+            if full_url in seen:
+                continue
+            seen.add(full_url)
+            links.append(full_url)
+
+        return links
+
+    @staticmethod
+    async def _read_response_text(response: aiohttp.ClientResponse) -> str:
+        body = await response.read()
+        if not body:
+            return ""
+
+        content_type = (response.headers.get("content-type") or "").lower()
+        if "gb2312" in content_type or "gbk" in content_type:
+            try:
+                return body.decode("gb18030", errors="ignore")
+            except Exception:
+                pass
+
+        try:
+            text = body.decode("utf-8", errors="ignore")
+        except Exception:
+            text = body.decode("gb18030", errors="ignore")
+
+        lowered = text.lower()
+        if "charset=gb" in lowered or "meta charset=gb" in lowered:
+            try:
+                return body.decode("gb18030", errors="ignore")
+            except Exception:
+                return text
+        return text
+
+    @staticmethod
+    def _encode_xdshi_keyword_variants(keyword: str) -> List[str]:
+        variants: List[str] = []
+        seen = set()
+
+        try:
+            gbk_encoded = quote_from_bytes(keyword.encode("gb18030", errors="ignore"))
+            if gbk_encoded and gbk_encoded not in seen:
+                seen.add(gbk_encoded)
+                variants.append(gbk_encoded)
+        except Exception:
+            pass
+
+        utf8_encoded = quote_plus(keyword)
+        if utf8_encoded not in seen:
+            seen.add(utf8_encoded)
+            variants.append(utf8_encoded)
+
+        return variants
+
+    @staticmethod
+    async def _fetch_xdshi_article_poem(session: aiohttp.ClientSession, article_url: str) -> Optional[str]:
+        try:
+            async with session.get(article_url) as response:
+                if response.status != 200:
+                    return None
+                html = await response.text(errors="ignore")
+        except Exception:
+            return None
+
+        return PoetryAPI._extract_xdshi_poem_from_html(html)
+
+    @staticmethod
+    def _extract_xdshi_poem_from_html(html_text: str) -> Optional[str]:
+        if not html_text:
+            return None
+
+        title_match = re.search(r"<h1[^>]*>(.*?)</h1>", html_text, flags=re.I | re.S)
+        title = re.sub(r"\s+", " ", unescape(title_match.group(1))).strip() if title_match else ""
+
+        text = re.sub(r"(?is)<script[^>]*>.*?</script>", " ", html_text)
+        text = re.sub(r"(?is)<style[^>]*>.*?</style>", " ", text)
+        text = re.sub(r"(?is)<[^>]+>", "\n", text)
+        text = unescape(text)
+
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if not lines:
+            return None
+
+        full_text = "\n".join(lines)
+        author_match = re.search(r"作者[:：]\s*([^\s\n]+)", full_text)
+        author = author_match.group(1).strip() if author_match else "未知作者"
+
+        author_idx = -1
+        for idx, line in enumerate(lines):
+            if "作者" in line and author in line:
+                author_idx = idx
+                break
+
+        if (not title) or len(title) > 40:
+            if author_idx > 0:
+                for i in range(author_idx - 1, max(-1, author_idx - 8), -1):
+                    candidate = lines[i]
+                    if 2 <= len(candidate) <= 40 and "现代诗歌网" not in candidate and "作者" not in candidate:
+                        title = candidate
+                        break
+            if (not title) or len(title) > 40:
+                for line in lines[:40]:
+                    if 2 <= len(line) <= 40 and "现代诗歌网" not in line and "作者" not in line and "首页" not in line:
+                        title = line
+                        break
+        title = title or "未知标题"
+
+        stop_tokens = {
+            "投稿说明",
+            "稿酬及版权声明",
+            "阅读原文浏览",
+            "欢迎关注现代诗歌网",
+            "顺手买件好物",
+            "湘ICP备",
+            "网站声明",
+            "①现代诗",
+            "②欢迎投稿",
+            "③我们尊重",
+            "④发布于现代诗歌网",
+            "点赞：",
+            "阅读：",
+        }
+        skip_tokens = {
+            "首页",
+            "浏览",
+            "点赞",
+            "更新于",
+            "http",
+            "www.",
+            "作者：",
+            "现代诗歌网",
+        }
+
+        content_lines: List[str] = []
+        line_seen = set()
+        start_idx = 0
+        title_idx = next((i for i, line in enumerate(lines) if title and title == line), -1)
+        if title_idx >= 0:
+            start_idx = title_idx + 1
+        elif author_idx >= 0:
+            start_idx = author_idx + 1
+
+        for line in lines[start_idx:]:
+            if any(token in line for token in stop_tokens):
+                break
+            if any(token in line for token in skip_tokens):
+                continue
+            if line in {"#", "（", "）", "(", ")"}:
+                continue
+            if len(line) < 2 or len(line) > 80:
+                continue
+            if not re.search(r"[\u4e00-\u9fffA-Za-z]{2,}", line):
+                continue
+            if line in line_seen:
+                continue
+            line_seen.add(line)
+            content_lines.append(line)
+            if len(content_lines) >= 40:
+                break
+
+        if len(content_lines) < 3:
+            return None
+
+        body = "\n".join(content_lines)
+        if len(body) < 24:
+            return None
+
+        title_text = title if title.startswith("《") else f"《{title.strip('《》')}》"
+        return format_poetry(f"{title_text}\n{author}\n{body}", "modern")
 
     @staticmethod
     def _parse_plain_text_poetry(text: str, api_url: str) -> Optional[str]:
@@ -1144,7 +1496,13 @@ class PoetryAPI:
                 english = str(quote.get("q", "")).strip()
                 author = str(quote.get("a", "未知作者")).strip() or "未知作者"
                 if english:
-                    block = f"Random English Verse\n作者：{author}\n译者：未知\n\n英文：\n{english}\n\n中文：\n（暂无在线中文译文）"
+                    block = PoetryAPI._build_foreign_poetry_text(
+                        title="Random English Verse",
+                        author=author,
+                        translator="未知",
+                        english=english,
+                        chinese="（暂无在线中文译文）",
+                    )
                     return format_poetry(block, "foreign")
 
             if not isinstance(data, dict):
@@ -1162,6 +1520,16 @@ class PoetryAPI:
                     if author:
                         return format_poetry(f"{hitokoto}\n—— {author}《{source}》", "modern")
                     return format_poetry(f"{hitokoto}\n—— 《{source}》", "modern")
+
+            foreign_payload = PoetryAPI._extract_foreign_bilingual_payload(data)
+            if foreign_payload:
+                title, author, translator, english, chinese = foreign_payload
+                block = PoetryAPI._build_foreign_poetry_text(title, author, translator, english, chinese)
+                return format_poetry(block, "foreign")
+
+            modern_text = PoetryAPI._extract_modern_poetry_text(data)
+            if modern_text:
+                return format_poetry(modern_text, "modern")
 
             # 尝试常见现代诗结构
             extracted_content = PoetryAPI._extract_text_from_unknown_json(data)

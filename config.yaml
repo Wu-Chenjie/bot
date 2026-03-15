@@ -15,7 +15,7 @@ napcat:
   enable_webui: true
   check_napcat_update: false
   stop_napcat: false
-  remote_mode: true
+  remote_mode: false
   report_self_message: false
   report_forward_message_detail: true
 plugin:

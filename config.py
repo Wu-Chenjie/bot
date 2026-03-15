@@ -32,3 +32,20 @@ COMMAND_ALIASES = {
     "poetry_filter": ["诗词筛选", "诗歌筛选", "诗词定制"],
     "poetry_search": ["诗词搜索", "诗歌搜索", "搜诗"]
 }
+
+POETRY_TYPE_ALIASES = {
+    "不限": "all",
+    "全部": "all",
+    "all": "all",
+    "古诗词": "classic",
+    "古诗": "classic",
+    "classic": "classic",
+    "现代诗": "modern",
+    "现代": "modern",
+    "modern": "modern",
+    "双语外国诗": "foreign",
+    "双语": "foreign",
+    "中英": "foreign",
+    "外国诗": "foreign",
+    "foreign": "foreign",
+}

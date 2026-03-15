@@ -10,6 +10,9 @@ BASE = "https://www.shiku.org"
 XS_INDEX = f"{BASE}/shiku/xs/index.htm"
 OUT = Path(__file__).resolve().parents[1] / "data" / "poetry_library" / "modern_poems.json"
 TARGET_COUNT = 120
+MAX_POET_INDEXES = 60
+MAX_POEMS_PER_POET = 12
+PROGRESS_STEP = 20
 
 HEADERS = {
     "User-Agent": (
@@ -24,6 +27,9 @@ NOISE_TOKENS = {
     "上一首", "下一首", "返回", "目录", "诗人简介", "电子书库"
 }
 
+NOISE_LINE_RE = re.compile(r"^(中国诗歌库|中华诗库|中国诗典|中国诗人|中国诗坛|首页)$")
+ORDER_PREFIX_RE = re.compile(r"^\d+\s*[:：].*")
+
 
 def fetch(url: str) -> str:
     resp = requests.get(url, timeout=(6, 12), headers=HEADERS)
@@ -36,6 +42,16 @@ def clean_line(line: str) -> str:
     line = (line or "").replace("\u3000", " ").replace("\xa0", " ")
     line = re.sub(r"\s+", " ", line)
     return line.strip()
+
+
+def is_noise_line(line: str) -> bool:
+    if line in NOISE_TOKENS:
+        return True
+    if "中华诗库::" in line or "诗集::" in line:
+        return True
+    if line in {"（", "）", "(", ")"}:
+        return True
+    return False
 
 
 def extract_poet_dirs(index_html: str) -> list[str]:
@@ -100,13 +116,7 @@ def parse_poem_page(html: str) -> tuple[str, str, str] | None:
 
     filtered = []
     for line in lines:
-        if any(token == line for token in NOISE_TOKENS):
-            continue
-        if "中华诗库::" in line:
-            continue
-        if "诗集::" in line:
-            continue
-        if line in {"（", "）", "(", ")"}:
+        if is_noise_line(line):
             continue
         filtered.append(line)
 
@@ -132,9 +142,9 @@ def parse_poem_page(html: str) -> tuple[str, str, str] | None:
             continue
         if line.endswith("诗集") and len(line) <= 18:
             continue
-        if re.search(r"^(中国诗歌库|中华诗库|中国诗典|中国诗人|中国诗坛|首页)$", line):
+        if NOISE_LINE_RE.search(line):
             continue
-        if re.search(r"^\d+\s*[:：].*", line):
+        if ORDER_PREFIX_RE.search(line):
             continue
         content_lines.append(line)
 
@@ -167,17 +177,54 @@ def build_text(title: str, author: str, content: str) -> str:
     return f"《{title}》\n{author}\n{content}"
 
 
-def main() -> None:
-    index_html = fetch(XS_INDEX)
-    poet_indexes = extract_poet_dirs(index_html)
+def read_json_str_list(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not isinstance(raw, list):
+        return []
+    return [x for x in raw if isinstance(x, str)]
 
-    # 取前60位诗人目录，提升覆盖率
-    poet_indexes = poet_indexes[:60]
 
+def read_git_base_list(repo_path: str) -> list[str]:
+    try:
+        text = subprocess.check_output(
+            ["git", "show", f"HEAD:{repo_path}"],
+            text=True,
+            encoding="utf-8",
+        )
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            return [x for x in parsed if isinstance(x, str)]
+    except Exception:
+        pass
+    return []
+
+
+def merge_poems(new_items: list[str], base_items: list[str], target_count: int) -> list[str]:
+    merged: list[str] = []
+    merged_seen: set[tuple[str, str]] = set()
+
+    for item in new_items + base_items:
+        key = poem_key_from_text(item)
+        if not key or key in merged_seen:
+            continue
+        merged_seen.add(key)
+        merged.append(item)
+        if len(merged) >= target_count:
+            return merged
+
+    return merged
+
+
+def collect_new_items(poet_indexes: list[str], target_count: int) -> list[str]:
     new_items: list[str] = []
     seen_keys: set[tuple[str, str]] = set()
 
-    for poet_idx, poet_url in enumerate(poet_indexes, start=1):
+    for poet_url in poet_indexes[:MAX_POET_INDEXES]:
         try:
             poet_html = fetch(poet_url)
         except Exception as e:
@@ -185,11 +232,9 @@ def main() -> None:
             continue
 
         poem_links = extract_poem_links(poet_url, poet_html)
-        # 每位诗人最多抓12首
-        for poem_url in poem_links[:12]:
+        for poem_url in poem_links[:MAX_POEMS_PER_POET]:
             try:
-                html = fetch(poem_url)
-                parsed = parse_poem_page(html)
+                parsed = parse_poem_page(fetch(poem_url))
             except Exception:
                 continue
 
@@ -199,63 +244,27 @@ def main() -> None:
             key = (title, author)
             if key in seen_keys:
                 continue
+
             seen_keys.add(key)
             new_items.append(build_text(title, author, content))
 
-            if len(new_items) % 20 == 0:
+            if len(new_items) % PROGRESS_STEP == 0:
                 print(f"[INFO] 已抓取现代诗 {len(new_items)} 条", flush=True)
 
-        if len(new_items) >= TARGET_COUNT:
-            break
+            if len(new_items) >= target_count:
+                return new_items
 
-    old_items: list[str] = []
-    if OUT.exists():
-        try:
-            raw = json.loads(OUT.read_text(encoding="utf-8"))
-            if isinstance(raw, list):
-                old_items = [x for x in raw if isinstance(x, str)]
-        except Exception:
-            old_items = []
+    return new_items
 
-    # 回退到git中的基线，避免本地文件因抓取失败被缩减
-    git_base_items: list[str] = []
-    try:
-        text = subprocess.check_output(
-            ["git", "show", "HEAD:data/poetry_library/modern_poems.json"],
-            text=True,
-            encoding="utf-8",
-        )
-        parsed = json.loads(text)
-        if isinstance(parsed, list):
-            git_base_items = [x for x in parsed if isinstance(x, str)]
-    except Exception:
-        git_base_items = []
 
+def main() -> None:
+    index_html = fetch(XS_INDEX)
+    poet_indexes = extract_poet_dirs(index_html)
+    new_items = collect_new_items(poet_indexes, TARGET_COUNT)
+    old_items = read_json_str_list(OUT)
+    git_base_items = read_git_base_list("data/poetry_library/modern_poems.json")
     base_items = old_items if len(old_items) >= len(git_base_items) else git_base_items
-
-    merged: list[str] = []
-    merged_seen: set[tuple[str, str]] = set()
-
-    for item in new_items + base_items:
-        key = poem_key_from_text(item)
-        if not key:
-            continue
-        if key in merged_seen:
-            continue
-        merged_seen.add(key)
-        merged.append(item)
-        if len(merged) >= TARGET_COUNT:
-            break
-
-    if len(merged) < TARGET_COUNT:
-        for item in base_items:
-            if len(merged) >= TARGET_COUNT:
-                break
-            key = poem_key_from_text(item)
-            if not key or key in merged_seen:
-                continue
-            merged_seen.add(key)
-            merged.append(item)
+    merged = merge_poems(new_items, base_items, TARGET_COUNT)
 
     if len(new_items) < 20:
         print(f"[WARN] 本次抓取到的现代诗较少: {len(new_items)}", flush=True)
