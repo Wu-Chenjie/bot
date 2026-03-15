@@ -510,20 +510,22 @@ class PoetryAPI:
 
     @staticmethod
     async def search_poetry(keyword: str, poetry_type: str = "all") -> Optional[str]:
-        """关键词检索诗歌：先 API 联网，再搜索引擎，最后本地检索"""
+        """关键词检索诗歌：先本地检索，未命中再联网"""
         normalized_keyword = (keyword or "").strip()
         normalized_type = (poetry_type or "all").strip().lower() or "all"
         if not normalized_keyword:
             return None
 
-        online_result = await PoetryAPI._search_online_poetry(normalized_keyword, normalized_type)
-        if online_result:
-            return online_result
+        local_result = PoetryAPI._search_local_poetry(normalized_keyword, normalized_type)
+        if local_result:
+            return local_result
 
-        return PoetryAPI._search_local_poetry(normalized_keyword, normalized_type)
+        return await PoetryAPI._search_online_poetry(normalized_keyword, normalized_type)
 
     @staticmethod
     def _search_local_poetry(keyword: str, poetry_type: str) -> Optional[str]:
+        all_matches: List[str] = []
+
         if poetry_type in {"all", "classic"}:
             classic_matches = []
             for item in PoetryAPI.LOCAL_POEM_LIBRARY:
@@ -537,8 +539,7 @@ class PoetryAPI:
                     continue
                 classic_matches.append(format_poetry(f"{title}\n{author}\n{poem_content}", "classic"))
 
-            if classic_matches:
-                return random.choice(classic_matches)
+            all_matches.extend(classic_matches)
 
         if poetry_type in {"all", "modern"}:
             modern_matches = []
@@ -546,8 +547,7 @@ class PoetryAPI:
                 if PoetryAPI._contains_keyword(poem_text, keyword):
                     modern_matches.append(format_poetry(poem_text, "modern"))
 
-            if modern_matches:
-                return random.choice(modern_matches)
+            all_matches.extend(modern_matches)
 
         if poetry_type in {"all", "foreign"}:
             foreign_matches = []
@@ -563,31 +563,40 @@ class PoetryAPI:
                 block = PoetryAPI._build_foreign_poetry_text(title, author, translator, english, chinese)
                 foreign_matches.append(format_poetry(block, "foreign"))
 
-            if foreign_matches:
-                return random.choice(foreign_matches)
+            all_matches.extend(foreign_matches)
+
+        if all_matches:
+            deduped = list(dict.fromkeys(all_matches))
+            return random.choice(deduped)
 
         return None
 
     @staticmethod
     async def _search_online_poetry(keyword: str, poetry_type: str) -> Optional[str]:
+        online_candidates: List[str] = []
+
         if poetry_type in {"all", "classic"}:
             classic_result = await PoetryAPI._search_online_classic_poetry(keyword)
             if classic_result:
-                return classic_result
+                online_candidates.append(classic_result)
 
         if poetry_type in {"all", "modern"}:
             modern_result = await PoetryAPI._search_online_modern_poetry(keyword)
             if modern_result:
-                return modern_result
+                online_candidates.append(modern_result)
 
         if poetry_type in {"all", "foreign"}:
             foreign_result = await PoetryAPI._search_online_foreign_poetry(keyword)
             if foreign_result:
-                return foreign_result
+                online_candidates.append(foreign_result)
 
         search_engine_result = await PoetryAPI._search_via_search_engine(keyword, poetry_type)
         if search_engine_result:
-            return search_engine_result
+            online_candidates.append(search_engine_result)
+
+        if online_candidates:
+            deduped = list(dict.fromkeys(online_candidates))
+            return random.choice(deduped)
 
         return None
 
