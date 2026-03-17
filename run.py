@@ -188,11 +188,11 @@ if __name__ == "__main__":
             print("[AUTO] 检测到端口覆盖确认，自动选择: y")
             return "y"
         if ("安装" in prompt_text and "继续" in prompt_text) or ("install" in prompt_text.lower() and "continue" in prompt_text.lower()):
-            print("[AUTO] 检测到安装确认，自动选择: n")
-            return "n"
+            print("[AUTO] 检测到安装确认，自动选择: y")
+            return "y"
         if "y/n" in prompt_text.lower():
-            print("[AUTO] 检测到通用确认提示，自动选择: n")
-            return "n"
+            print("[AUTO] 检测到通用确认提示，自动选择: y")
+            return "y"
         return original_input(prompt)
 
     try:
