@@ -37,7 +37,33 @@ pip install ncatbot aiohttp pyyaml
 
 因为代码中默认按 `bot` 包导入（`from bot.main import PoetryPlugin`）。
 
-### 3）启动机器人
+### 3）创建本地配置
+
+首次使用请复制模板并填写你自己的连接信息：
+
+```bash
+cp config.example.yaml config.yaml
+```
+
+Windows PowerShell 可用：
+
+```powershell
+Copy-Item config.example.yaml config.yaml
+```
+
+`config.yaml` 已被 `.gitignore` 忽略，不会上传到 GitHub。
+
+### 4）启用提交前安全检查（推荐）
+
+首次克隆后执行：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+启用后，提交前会自动拦截：`config.yaml`、`.env`、`*.local.yaml` 等本地敏感配置。
+
+### 5）启动机器人
 
 在本目录执行：
 

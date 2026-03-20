@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+
+# Block accidental commits of local secrets/config files.
+
+set -eu
+
+staged_files="$(git diff --cached --name-only --diff-filter=ACMR)"
+[ -z "$staged_files" ] && exit 0
+
+blocked_files=""
+
+for file in $staged_files; do
+  case "$file" in
+    config.yaml|config.local.yaml|*.local.yaml|.env|.env.*)
+      case "$file" in
+        .env.example)
+          ;;
+        *)
+          blocked_files="$blocked_files$file\n"
+          ;;
+      esac
+      ;;
+  esac
+done
+
+if [ -n "$blocked_files" ]; then
+  printf "\n❌ 提交被拦截：检测到敏感本地配置文件\n\n"
+  printf "以下文件不应提交到仓库：\n"
+  printf "$blocked_files"
+  printf "\n修复建议：\n"
+  printf "  git restore --staged <file>\n"
+  printf "  或 git rm --cached <file>\n"
+  printf "\n若需要共享配置，请提交 config.example.yaml 或 .env.example\n\n"
+  exit 1
+fi
+
+exit 0

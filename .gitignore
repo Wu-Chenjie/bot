@@ -34,6 +34,14 @@ ENV/
 *.swp
 *.swo
 
+# 本地配置（避免上传）
+config.yaml
+config.local.yaml
+*.local.yaml
+.env
+.env.*
+!.env.example
+
 # 系统文件
 .DS_Store
 Thumbs.db
