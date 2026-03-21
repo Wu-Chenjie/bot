@@ -511,7 +511,7 @@ class PoetryAPI:
     @staticmethod
     async def search_poetry(keyword: str, poetry_type: str = "all") -> Optional[str]:
         """关键词检索诗歌：先本地检索，未命中再联网"""
-        normalized_keyword = (keyword or "").strip()
+        normalized_keyword = PoetryAPI._normalize_search_keyword(keyword)
         normalized_type = (poetry_type or "all").strip().lower() or "all"
         if not normalized_keyword:
             return None
@@ -544,7 +544,7 @@ class PoetryAPI:
         if poetry_type in {"all", "modern"}:
             modern_matches = []
             for poem_text in PoetryAPI.LOCAL_MODERN_POEMS:
-                if PoetryAPI._contains_keyword(poem_text, keyword):
+                if PoetryAPI._contains_modern_keyword(poem_text, keyword):
                     modern_matches.append(format_poetry(poem_text, "modern"))
 
             all_matches.extend(modern_matches)
@@ -630,12 +630,18 @@ class PoetryAPI:
 
     @staticmethod
     async def _search_online_modern_poetry(keyword: str) -> Optional[str]:
-        api_result = await PoetryAPI._search_online_in_api_pool(
-            keyword=keyword,
-            api_urls=MODERN_POETRY_FALLBACK_APIS,
-        )
-        if api_result:
-            return api_result
+        if MODERN_POETRY_FALLBACK_APIS:
+            max_attempts = max(8, len(MODERN_POETRY_FALLBACK_APIS) * 2)
+            timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
+            async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
+                for attempt in range(max_attempts):
+                    api_url = MODERN_POETRY_FALLBACK_APIS[attempt % len(MODERN_POETRY_FALLBACK_APIS)]
+                    poetry_text = await PoetryAPI._request_api_with_session(session, api_url)
+                    if not poetry_text:
+                        continue
+                    if PoetryAPI._contains_modern_keyword(poetry_text, keyword):
+                        return poetry_text
+
         timeout = aiohttp.ClientTimeout(total=max(API_TIMEOUT, 12))
         async with aiohttp.ClientSession(timeout=timeout, headers=HTTP_HEADERS) as session:
             return await PoetryAPI._fetch_xdshi_modern_poetry(session, keyword)
@@ -786,6 +792,110 @@ class PoetryAPI:
         if not content or not keyword:
             return False
         return keyword.casefold() in content.casefold()
+
+    @staticmethod
+    def _normalize_search_keyword(keyword: str) -> str:
+        """兼容从JSON复制的关键词（如包含\n、尾逗号、包裹引号）。"""
+        text = (keyword or "").strip()
+        if not text:
+            return ""
+
+        # 常见场景：直接从JSON数组项复制，末尾带逗号。
+        if text.endswith(","):
+            text = text[:-1].rstrip()
+
+        # 常见场景：被双引号包裹的整段字符串。
+        if len(text) >= 2 and text[0] == text[-1] and text[0] in {'"', "'"}:
+            text = text[1:-1].strip()
+
+        # 还原常见转义，支持 "《回答》\\n北岛..." 这种输入。
+        text = text.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
+        text = text.replace("\\t", " ")
+        text = text.replace("\\\"", '"').replace("\\'", "'")
+
+        return text.strip()
+
+    @staticmethod
+    def _normalize_match_text(text: str) -> str:
+        compact = re.sub(
+            r"[\s\u3000\xa0，。！？；：、“”‘’（）()【】\[\]{}《》<>\-—_·'\"`~!@#$%^&*+=|\\/:;,\.\?]+",
+            "",
+            text or "",
+        )
+        return compact.casefold()
+
+    @staticmethod
+    def _contains_modern_keyword(poetry_text: str, keyword: str) -> bool:
+        if not poetry_text or not keyword:
+            return False
+
+        stripped = PoetryAPI._strip_poetry_prefix(poetry_text)
+        if PoetryAPI._contains_keyword(stripped, keyword):
+            return True
+
+        normalized_text = PoetryAPI._normalize_match_text(stripped)
+        normalized_keyword = PoetryAPI._normalize_match_text(keyword)
+        if not normalized_text or not normalized_keyword:
+            return False
+
+        lines = [line.strip() for line in stripped.split("\n") if line.strip()]
+        title = lines[0] if len(lines) >= 1 else ""
+        author = lines[1] if len(lines) >= 2 else ""
+        normalized_title = PoetryAPI._normalize_match_text(title.strip("《》"))
+        normalized_author = PoetryAPI._normalize_match_text(author)
+
+        query_terms = PoetryAPI._extract_modern_query_terms(keyword)
+        if query_terms and normalized_title and normalized_author:
+            has_title_hint = any(term in normalized_title for term in query_terms)
+            has_author_hint = any(term in normalized_author for term in query_terms)
+            if has_title_hint and has_author_hint:
+                return True
+
+        if normalized_keyword in normalized_text:
+            return True
+
+        # 关键词包含空格/顿号时，支持多词分别命中内容中的不同位置。
+        keyword_terms = query_terms
+        keyword_terms = [term for term in keyword_terms if term]
+        if len(keyword_terms) >= 2:
+            return all(term in normalized_text for term in keyword_terms)
+
+        return False
+
+    @staticmethod
+    def _extract_modern_query_terms(keyword: str) -> List[str]:
+        text = (keyword or "").strip()
+        if not text:
+            return []
+
+        candidates: List[str] = []
+
+        title_chunks = re.findall(r"《([^》]{1,40})》", text)
+        candidates.extend(title_chunks)
+
+        author_marked = re.findall(r"(?:作者|诗人)\s*[：:]?\s*([\u4e00-\u9fffA-Za-z·]{2,20})", text)
+        candidates.extend(author_marked)
+
+        softened = re.sub(
+            r"(的|之|写的|所写|所作|作品|诗作|现代诗|题目|标题|作者|诗人|叫|名为)",
+            " ",
+            text,
+        )
+        rough_terms = re.split(r"[\s,，、;；|/]+", softened)
+        candidates.extend(rough_terms)
+
+        normalized_terms: List[str] = []
+        seen = set()
+        for item in candidates:
+            normalized = PoetryAPI._normalize_match_text(item)
+            if len(normalized) < 2:
+                continue
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            normalized_terms.append(normalized)
+
+        return normalized_terms
 
     @staticmethod
     async def _fetch_poetry_candidates() -> List[Dict]:
@@ -950,11 +1060,13 @@ class PoetryAPI:
         else:
             candidates = links[:]
             random.shuffle(candidates)
-        for article_url in candidates[:12]:
+
+        max_candidates = min(len(candidates), 60 if keyword else 12)
+        for article_url in candidates[:max_candidates]:
             poem_text = await PoetryAPI._fetch_xdshi_article_poem(session, article_url)
             if not poem_text:
                 continue
-            if keyword and not PoetryAPI._contains_keyword(PoetryAPI._strip_poetry_prefix(poem_text), keyword):
+            if keyword and not PoetryAPI._contains_modern_keyword(poem_text, keyword):
                 continue
             return poem_text
         return None

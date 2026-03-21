@@ -18,8 +18,6 @@
 
 ---
 
-## 5 分钟快速开始（推荐按顺序）
-
 ### 1）准备环境
 
 - Python 3.8+
@@ -74,10 +72,10 @@ python run.py
 看到启动日志后，到群里发送：
 
 ```text
-/poetry
+/help
 ```
 
-若返回诗词，说明部署成功。
+若返回提示，则部署成功。
 
 ---
 
@@ -92,7 +90,7 @@ python run.py
 | 帮助菜单 | `/help` | `帮助` / `菜单` / `指令` | `/help` |
 | 获取随机诗词 | `/poetry` | `诗词` / `诗歌` | `/poetry` |
 | 按类型获取 | `/poetry_type <type>` | `诗词类型` | `/poetry_type 古诗词` |
-| 按条件筛选 | `/poetry_filter <style> <content> <poet>` | `诗词筛选` / `诗歌筛选` / `诗词定制` | `/poetry_filter 婉约派 爱情 李清照` |
+| 按条件筛选 | `/poetry_filter <style> <content> <poet>` | `诗词筛选` / `诗歌筛选` / `诗词定制` | `/poetry_filter 宋词·婉约派 爱情 李清照` |
 | 关键词搜索 | `/poetry_search <keyword> [type]` | `诗词搜索` / `诗歌搜索` / `搜诗` | `/poetry_search 月 现代诗` |
 
 `type` 可选：
@@ -121,7 +119,7 @@ python run.py
 搜索规则：
 
 - 先检索本地诗歌库（古诗/现代/双语）
-- 本地未命中时，再进行联网检索（API + 搜索引擎兜底）
+- 本地未命中时，再进行联网检索
 - 命中多个候选时会随机返回，避免同关键词每次固定同一结果
 - 为保证结果正确性，联网结果需与关键词相关，否则返回“未检索到匹配诗歌”
 
@@ -153,8 +151,8 @@ DEFAULT_SCHEDULE_TIMES = [
 ]
 ```
 
-2. `POETRY_API_LIST`：诗词 API 列表（随机 + 重试）
-3. `COMMAND_ALIASES`：命令别名映射
+1. `POETRY_API_LIST`：诗词 API 列表
+2. `COMMAND_ALIASES`：命令别名映射
 
 ### `config.yaml`
 
@@ -184,7 +182,7 @@ DEFAULT_SCHEDULE_TIMES = [
 - 现代诗：字符串列表（每项为完整文本）
 - 双语：`title` / `author` / `translator` / `english` / `chinese`
 
-### 本地数据库样例（可直接参考）
+### 本地数据库样例
 
 `classic_poems.json`（对象数组）：
 
@@ -204,12 +202,7 @@ DEFAULT_SCHEDULE_TIMES = [
 
 ```json
 [
-  "《回答》\n作者：北岛\n卑鄙是卑鄙者的通行证，高尚是高尚者的墓志铭。",
-  {
-    "title": "一代人",
-    "author": "顾城",
-    "content": "黑夜给了我黑色的眼睛，我却用它寻找光明。"
-  }
+  "《回答》\n作者：北岛\n卑鄙是卑鄙者的通行证，高尚是高尚者的墓志铭。"
 ]
 ```
 
@@ -217,7 +210,7 @@ DEFAULT_SCHEDULE_TIMES = [
 
 ```json
 [
-  {
+{
     "title": "If",
     "author": "Rudyard Kipling",
     "translator": "译者名",
@@ -231,8 +224,8 @@ DEFAULT_SCHEDULE_TIMES = [
 
 - JSON 顶层使用数组
 - 文本统一 UTF-8 编码
-- 同一首诗避免重复入库（减少搜索重复结果）
-- 现代诗推荐使用对象格式（便于搜索标题/作者）
+- 同一首诗避免重复入库
+- 现代诗推荐使用对象格式
 
 ---
 
@@ -284,12 +277,6 @@ pip install ncatbot aiohttp pyyaml
 
 已移除当前环境不可用或返回壳页面的接口（如 DNS 失败或仅返回前端 HTML）。
 
-当前线上优先源：
-
-- 古诗词：`v1.jinrishici.com`
-- 现代诗：`v1.hitokoto.cn`（含国际镜像回退）
-- 双语外国诗：`zenquotes.io`
-
 若线上返回 HTML，程序会先识别壳页面并跳过，避免误判为诗歌内容。
 
 ### 4）提示“已检测到机器人实例正在运行”
@@ -322,8 +309,3 @@ bot/
 
 ---
 
-## 版本
-
-- `v1.2.0`：新增双语外国诗类型、现代诗 HTML/内嵌 JSON 提取回退、`run.py` 单实例启动保护
-- `v1.3.0`：本地诗歌库外置化、移除不可用线上源、增强 HTML 壳页面识别
-- `v1.3.1`：统一发布版本号为 `1.3.1`，补充运行产物忽略规则（`.bot_run.lock`、`napcat/`）

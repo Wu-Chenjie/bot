@@ -51,7 +51,7 @@ class PoetryPlugin(NcatBotPlugin):
             "- /poetry：随机诗歌\n"
             "- /poetry_type <type>：按类型获取（古诗词/现代诗/双语外国诗）\n"
             "- /poetry_filter <style> <content> <poet>：按条件筛选\n"
-            "- /poetry_search <keyword> [type]：关键词搜索（本地→联网）\n"
+            "- /poetry_search <keyword> [type]：关键词搜索\n"
             "\n"
             "示例：\n"
             "/poetry_search 李白 古诗词\n"
@@ -75,14 +75,14 @@ class PoetryPlugin(NcatBotPlugin):
         await reply_text(event, poetry_text)
 
     @command_registry.command("poetry_filter", aliases=COMMAND_ALIASES["poetry_filter"], description="按风格/内容/诗人筛选诗词（中文输入）")
-    @param(name="style", default="不限", help="风格：婉约派/豪放派/不限")
+    @param(name="style", default="不限", help="风格：唐诗、宋词·婉约派、宋词·豪放派/不限")
     @param(name="content", default="不限", help="描写内容：思乡/离别/山水/边塞/爱情/不限")
     @param(name="poet", default="不限", help="诗人：如李白、杜甫、苏轼；不限可留空")
     async def poetry_filter_cmd(self, event: BaseMessageEvent, style: str = "不限", content: str = "不限", poet: str = "不限"):
         """按风格、内容、诗人筛选诗词（中文输入）"""
         poetry_text = await PoetryAPI.get_filtered_poetry(style=style, content=content, poet=poet)
         if not poetry_text:
-            tip = "未筛选到匹配诗词，可尝试放宽条件。例如：/poetry_filter 婉约派 不限 李清照"
+            tip = "未筛选到匹配诗词，可尝试放宽条件。例如：/poetry_filter 宋词·婉约派 不限 李清照"
             await reply_text(event, tip)
             return
         await reply_text(event, poetry_text)
